@@ -145,7 +145,7 @@ setTimeout(initializeTelegramWebApp, 1000);
 let currentScript = null;
 let adTimer = null;
 let downloadCount = 1234;
-let activeUsers = 567;
+let activeUsers = 0; // API'den gelecek
 
 // VPN Script Data
 const vpnScripts = {
@@ -459,10 +459,19 @@ function showNotification(message, type = 'info') {
 
 // Update Stats Periodically
 function updateStats() {
-    // Simulate active users change
-    const change = Math.floor(Math.random() * 10) - 5;
-    activeUsers = Math.max(100, activeUsers + change);
-    activeUsersElement.textContent = activeUsers.toLocaleString();
+    // API'den güncel istatistikleri al
+    fetch('/api/stats')
+        .then(response => response.json())
+        .then(stats => {
+            downloadCount = stats.totalDownloads;
+            activeUsers = stats.activeUsers;
+            
+            totalDownloadsElement.textContent = downloadCount.toLocaleString();
+            activeUsersElement.textContent = activeUsers.toLocaleString();
+        })
+        .catch(error => {
+            console.error('İstatistikler yüklenirken hata:', error);
+        });
 }
 
 // Update stats every 30 seconds

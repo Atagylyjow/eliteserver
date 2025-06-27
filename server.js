@@ -132,6 +132,8 @@ function updateStats(scriptType) {
 
 // API Routes
 app.get('/api/stats', (req, res) => {
+    // Aktif kullanıcı sayısını güncelle
+    database.stats.activeUsers = Object.keys(database.users).length;
     res.json(database.stats);
 });
 
@@ -248,7 +250,7 @@ ${isAdmin(chatId) ? '\n🔧 **Yönetici Komutları:**\n/admin - Yönetici paneli
         inline_keyboard: [
             [{
                 text: '🚀 VPN Script Hub\'ı Aç',
-                web_app: { url: `https://your-username.github.io/your-repo-name/` }
+                web_app: { url: `https://atagylyjow.github.io/TG-Web-App/` }
             }],
             [{
                 text: '📊 İstatistikler',
@@ -270,6 +272,10 @@ ${isAdmin(chatId) ? '\n🔧 **Yönetici Komutları:**\n/admin - Yönetici paneli
 // Yönetici komutları
 bot.onText(/\/admin/, (msg) => {
     const chatId = msg.chat.id;
+    
+    console.log(`Admin komutu çağrıldı. Chat ID: ${chatId}`);
+    console.log(`Admin listesi: ${database.admins}`);
+    console.log(`Admin mi?: ${isAdmin(chatId)}`);
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -428,7 +434,7 @@ app.listen(PORT, () => {
     console.log(`🚀 VPN Script Hub Server başlatıldı!`);
     console.log(`📡 Port: ${PORT}`);
     console.log(`🤖 Bot Token: ${token}`);
-    console.log(`🌐 Web App URL: https://your-username.github.io/your-repo-name/`);
+    console.log(`🌐 Web App URL: https://atagylyjow.github.io/TG-Web-App/`);
 });
 
 // Hata yakalama
