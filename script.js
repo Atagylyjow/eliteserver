@@ -348,7 +348,6 @@ const downloadModalClose = document.getElementById('download-modal-close');
 const progressFill = document.getElementById('progress-fill');
 const timer = document.getElementById('timer');
 const downloadBtn = document.getElementById('download-btn');
-const copyBtn = document.getElementById('copy-btn');
 const downloadScriptName = document.getElementById('download-script-name');
 const downloadScriptDesc = document.getElementById('download-script-desc');
 const totalDownloadsElement = document.getElementById('total-downloads');
@@ -364,7 +363,6 @@ console.log('❌ Download modal close:', !!downloadModalClose);
 console.log('📊 Progress fill:', !!progressFill);
 console.log('⏰ Timer:', !!timer);
 console.log('⬇️ Download btn:', !!downloadBtn);
-console.log('📋 Copy btn:', !!copyBtn);
 console.log('📝 Download script name:', !!downloadScriptName);
 console.log('📄 Download script desc:', !!downloadScriptDesc);
 console.log('📈 Total downloads:', !!totalDownloadsElement);
@@ -422,24 +420,10 @@ document.querySelectorAll('.unlock-btn').forEach(btn => {
 // Show Ad Modal
 function showAdModal() {
     console.log('🎬 showAdModal çağrıldı');
-    console.log('📺 Ad modal elementi:', adModal);
     
-    if (adModal) {
-        adModal.classList.add('show');
-        console.log('✅ Ad modal show class eklendi');
-        
-        // 30 saniye timer yerine direkt AdsGram reklamını göster
-        setTimeout(() => {
-            hideAdModal();
-            showAdsGramAd();
-        }, 1000); // 1 saniye sonra direkt reklam göster
-        
-    } else {
-        console.error('❌ Ad modal elementi bulunamadı!');
-        // Fallback: direkt AdsGram reklamını göster
-        console.log('🔄 Fallback: Direkt AdsGram reklamı gösteriliyor...');
-        showAdsGramAd();
-    }
+    // Direkt AdsGram reklamını göster, modal gösterme
+    console.log('🔄 Direkt AdsGram reklamı gösteriliyor...');
+    showAdsGramAd();
 }
 
 // Hide Ad Modal
@@ -453,13 +437,6 @@ function hideAdModal() {
 // Show AdsGram Ad
 async function showAdsGramAd() {
     try {
-        // Reklam gösterme butonunu devre dışı bırak
-        const downloadBtn = document.getElementById('download-btn');
-        if (downloadBtn) {
-            downloadBtn.disabled = true;
-            downloadBtn.textContent = 'Reklam Yükleniyor...';
-        }
-        
         // AdsGram reklamını göster
         const adWatched = await showAd();
         
@@ -470,23 +447,10 @@ async function showAdsGramAd() {
         } else {
             // Kullanıcı reklamı tamamlamadı
             showNotification('❌ Reklam tamamlanmadı. Lütfen tekrar deneyin.', 'error');
-            
-            // Butonu tekrar aktif et
-            if (downloadBtn) {
-                downloadBtn.disabled = false;
-                downloadBtn.textContent = 'İndir';
-            }
         }
     } catch (error) {
         console.error('Reklam gösterme hatası:', error);
         showNotification('❌ Reklam yüklenirken hata oluştu.', 'error');
-        
-        // Butonu tekrar aktif et
-        const downloadBtn = document.getElementById('download-btn');
-        if (downloadBtn) {
-            downloadBtn.disabled = false;
-            downloadBtn.textContent = 'İndir';
-        }
     }
 }
 
@@ -524,15 +488,6 @@ downloadModal.addEventListener('click', (e) => {
 downloadBtn.addEventListener('click', () => {
     const script = vpnScripts[currentScript];
     downloadScript(script);
-});
-
-// Copy Button
-copyBtn.addEventListener('click', () => {
-    const script = vpnScripts[currentScript];
-    copyToClipboard(script.content);
-    
-    // Show success message
-    showNotification('Script panoya kopyalandı!', 'success');
 });
 
 // Download Script Function
@@ -586,21 +541,6 @@ async function downloadScript(script) {
         script: currentScript,
         timestamp: Date.now()
     });
-}
-
-// Copy to Clipboard Function
-function copyToClipboard(text) {
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(text);
-    } else {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-    }
 }
 
 // Show Notification Function
