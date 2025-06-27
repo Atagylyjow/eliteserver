@@ -9,42 +9,29 @@ function initializeTelegramWebApp() {
     // Check if Telegram WebApp is available
     if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
         tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
         
-        console.log('✅ Telegram WebApp found');
-        console.log('initData:', tg.initData);
-        console.log('initDataUnsafe:', tg.initDataUnsafe);
-        console.log('user:', tg.initDataUnsafe?.user);
-        console.log('chat:', tg.initDataUnsafe?.chat);
+        // Set theme
+        const theme = tg.colorScheme;
+        document.documentElement.setAttribute('data-theme', theme);
         
-        // Check if running in Telegram
-        if (tg.initData && tg.initData.length > 0) {
-            console.log('✅ Running in Telegram Web App');
-            
-            // Initialize Telegram WebApp
-            tg.ready();
-            tg.expand();
-            
-            // Set theme based on Telegram's theme
-            if (tg.colorScheme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            }
-            
-            // Set header and background colors
-            tg.setHeaderColor('#007bff');
-            tg.setBackgroundColor('#ffffff');
-            
-            // Show main content
-            document.querySelector('.app-container').style.display = 'block';
-            
-            // Load real-time stats
-            loadStats();
-            
-        } else {
-            console.log('❌ No initData - not running in Telegram');
-            showTelegramOnlyMessage();
+        // Update theme toggle icon
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            const icon = themeToggle.querySelector('i');
+            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         }
+        
+        // Initialize AdsGram SDK
+        initializeAdsGram();
+        
+        // Load initial stats
+        loadStats();
+        
+        console.log('Telegram WebApp başlatıldı');
     } else {
-        console.log('❌ Telegram WebApp not available');
+        // Show message for non-Telegram environment
         showTelegramOnlyMessage();
     }
 }
@@ -140,6 +127,47 @@ if (document.readyState === 'loading') {
 
 // Also try to initialize after a short delay (in case Telegram WebApp loads later)
 setTimeout(initializeTelegramWebApp, 1000);
+
+// AdsGram Controller
+let AdController = null;
+
+// Initialize AdsGram SDK
+function initializeAdsGram() {
+    try {
+        // 🔥 BURAYA KENDİ BLOCK ID'NİZİ YAZIN 🔥
+        // Örnek: "abc123def456" (tırnak işaretleri olmadan)
+        AdController = window.Adsgram.init({ 
+            blockId: "int-12280" 
+        });
+        console.log('AdsGram SDK başlatıldı');
+    } catch (error) {
+        console.error('AdsGram SDK başlatılamadı:', error);
+    }
+}
+
+// Reklam gösterme fonksiyonu
+async function showAd() {
+    if (!AdController) {
+        console.error('AdsGram Controller bulunamadı');
+        return false;
+    }
+    
+    try {
+        const result = await AdController.show();
+        console.log('Reklam sonucu:', result);
+        
+        if (result.done) {
+            // Kullanıcı reklamı tamamladı
+            return true;
+        } else {
+            // Kullanıcı reklamı tamamlamadı
+            return false;
+        }
+    } catch (error) {
+        console.error('Reklam gösterme hatası:', error);
+        return false;
+    }
+}
 
 // App State
 let currentScript = null;
@@ -309,7 +337,7 @@ function startAdTimer() {
         if (timeLeft <= 0) {
             clearInterval(adTimer);
             hideAdModal();
-            showDownloadModal();
+            showAdsGramAd();
         }
     }, 1000);
 }
@@ -319,6 +347,46 @@ function hideAdModal() {
     adModal.classList.remove('show');
     if (adTimer) {
         clearInterval(adTimer);
+    }
+}
+
+// Show AdsGram Ad
+async function showAdsGramAd() {
+    try {
+        // Reklam gösterme butonunu devre dışı bırak
+        const downloadBtn = document.getElementById('download-btn');
+        if (downloadBtn) {
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = 'Reklam Yükleniyor...';
+        }
+        
+        // AdsGram reklamını göster
+        const adWatched = await showAd();
+        
+        if (adWatched) {
+            // Kullanıcı reklamı tamamladı
+            showNotification('✅ Reklam tamamlandı! Script indiriliyor...', 'success');
+            showDownloadModal();
+        } else {
+            // Kullanıcı reklamı tamamlamadı
+            showNotification('❌ Reklam tamamlanmadı. Lütfen tekrar deneyin.', 'error');
+            
+            // Butonu tekrar aktif et
+            if (downloadBtn) {
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'İndir';
+            }
+        }
+    } catch (error) {
+        console.error('Reklam gösterme hatası:', error);
+        showNotification('❌ Reklam yüklenirken hata oluştu.', 'error');
+        
+        // Butonu tekrar aktif et
+        const downloadBtn = document.getElementById('download-btn');
+        if (downloadBtn) {
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = 'İndir';
+        }
     }
 }
 
