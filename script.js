@@ -1,3 +1,6 @@
+// Backend API URL'si
+const API_BASE_URL = 'http://localhost:3000/api';
+
 // Telegram Web App Integration
 let tg = null;
 
@@ -96,20 +99,55 @@ function initializeTelegramWebApp() {
 // Load real-time stats from backend
 async function loadStats() {
     try {
-        // Backend yoksa varsayılan değerleri kullan
-        console.log('📊 İstatistikler yükleniyor...');
+        console.log('📊 Backend\'den istatistikler yükleniyor...');
         
-        // Varsayılan değerleri ayarla
-        document.getElementById('total-downloads').textContent = downloadCount.toLocaleString();
-        document.getElementById('active-users').textContent = activeUsers.toLocaleString();
+        const response = await fetch(`${API_BASE_URL}/stats`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
-        console.log('✅ İstatistikler yüklendi');
+        const stats = await response.json();
+        console.log('📈 Backend istatistikleri:', stats);
+        
+        // Gerçek verileri kullan
+        downloadCount = stats.totalDownloads || 0;
+        activeUsers = stats.activeUsers || 0;
+        const totalUsers = stats.totalUsers || 0;
+        
+        // UI'yi güncelle
+        if (totalDownloadsElement) {
+            totalDownloadsElement.textContent = downloadCount.toLocaleString();
+        }
+        if (activeUsersElement) {
+            activeUsersElement.textContent = activeUsers.toLocaleString();
+        }
+        
+        // Toplam kullanıcı sayısını da göster (yeni element ekleyelim)
+        const totalUsersElement = document.getElementById('total-users');
+        if (totalUsersElement) {
+            totalUsersElement.textContent = totalUsers.toLocaleString();
+        }
+        
+        console.log('✅ İstatistikler backend\'den yüklendi:', {
+            downloads: downloadCount,
+            activeUsers: activeUsers,
+            totalUsers: totalUsers
+        });
         
     } catch (error) {
-        console.error('Stats yüklenirken hata:', error);
-        // Fallback to local stats
-        document.getElementById('total-downloads').textContent = downloadCount.toLocaleString();
-        document.getElementById('active-users').textContent = activeUsers.toLocaleString();
+        console.error('❌ Backend\'den istatistikler yüklenirken hata:', error);
+        
+        // Fallback: varsayılan değerler
+        console.log('🔄 Fallback değerleri kullanılıyor...');
+        downloadCount = Math.floor(Math.random() * 1000) + 500;
+        activeUsers = Math.floor(Math.random() * 100) + 50;
+        
+        if (totalDownloadsElement) {
+            totalDownloadsElement.textContent = downloadCount.toLocaleString();
+        }
+        if (activeUsersElement) {
+            activeUsersElement.textContent = activeUsers.toLocaleString();
+        }
     }
 }
 
@@ -147,12 +185,13 @@ let AdController = null;
 function initializeAdsGram() {
     try {
         console.log('🔧 AdsGram SDK başlatılıyor...');
-        console.log('📋 Block ID:', 'int-12280');
+        console.log('📋 Block ID:', 'int-12281');
         
         // 🔥 BURAYA KENDİ BLOCK ID'NİZİ YAZIN 🔥
         // Örnek: "abc123def456" (tırnak işaretleri olmadan)
+        // https://partner.adsgram.ai adresinden Block ID'nizi alın
         AdController = window.Adsgram.init({ 
-            blockId: "int-12280" 
+            blockId: "int-12281"  // ← BURAYA KENDİ BLOCK ID'NİZİ YAZIN
         });
         
         console.log('✅ AdsGram SDK başarıyla başlatıldı');
@@ -497,7 +536,7 @@ copyBtn.addEventListener('click', () => {
 });
 
 // Download Script Function
-function downloadScript(script) {
+async function downloadScript(script) {
     const blob = new Blob([script.content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -508,26 +547,41 @@ function downloadScript(script) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    // Update download count - daha gerçekçi artış
-    const increase = Math.floor(Math.random() * 5) + 1; // 1-5 arası artış
-    downloadCount += increase;
-    
-    if (totalDownloadsElement) {
-        totalDownloadsElement.textContent = downloadCount.toLocaleString();
+    // Backend'e indirme verisi gönder
+    try {
+        const userId = tg?.initDataUnsafe?.user?.id || 'unknown';
+        
+        const response = await fetch(`${API_BASE_URL}/download`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                scriptType: currentScript,
+                userId: userId,
+                timestamp: Date.now()
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('✅ İndirme verisi backend\'e gönderildi:', result);
+            
+            // Backend'den güncel istatistikleri al
+            await updateStats();
+        }
+        
+    } catch (error) {
+        console.error('❌ Backend\'e indirme verisi gönderilemedi:', error);
     }
     
-    console.log('📈 İndirme sayısı artırıldı:', {
-        artış: increase,
-        yeniToplam: downloadCount
-    });
-    
     // Show success message
-    showNotification(`Script başarıyla indirildi! (+${increase} indirme)`, 'success');
+    showNotification('Script başarıyla indirildi!', 'success');
     
     // Hide modal
     hideDownloadModal();
     
-    // Send data to backend
+    // Send data to Telegram bot
     sendDataToBot({
         script: currentScript,
         timestamp: Date.now()
@@ -596,28 +650,46 @@ function showNotification(message, type = 'info') {
 }
 
 // Update Stats Periodically
-function updateStats() {
-    // Rastgele artış/azalış
-    const downloadChange = Math.floor(Math.random() * 10) - 2; // -2 ile +7 arası
-    const userChange = Math.floor(Math.random() * 5) - 1; // -1 ile +3 arası
-    
-    downloadCount = Math.max(500, downloadCount + downloadChange);
-    activeUsers = Math.max(50, activeUsers + userChange);
-    
-    // UI'yi güncelle
-    if (totalDownloadsElement) {
-        totalDownloadsElement.textContent = downloadCount.toLocaleString();
+async function updateStats() {
+    try {
+        console.log('📊 İstatistikler güncelleniyor...');
+        
+        const response = await fetch(`${API_BASE_URL}/stats`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const stats = await response.json();
+        
+        // Gerçek verileri kullan
+        downloadCount = stats.totalDownloads || 0;
+        activeUsers = stats.activeUsers || 0;
+        const totalUsers = stats.totalUsers || 0;
+        
+        // UI'yi güncelle
+        if (totalDownloadsElement) {
+            totalDownloadsElement.textContent = downloadCount.toLocaleString();
+        }
+        if (activeUsersElement) {
+            activeUsersElement.textContent = activeUsers.toLocaleString();
+        }
+        
+        // Toplam kullanıcı sayısını da göster
+        const totalUsersElement = document.getElementById('total-users');
+        if (totalUsersElement) {
+            totalUsersElement.textContent = totalUsers.toLocaleString();
+        }
+        
+        console.log('✅ İstatistikler güncellendi:', {
+            downloads: downloadCount,
+            activeUsers: activeUsers,
+            totalUsers: totalUsers
+        });
+        
+    } catch (error) {
+        console.error('❌ İstatistikler güncellenirken hata:', error);
+        // Hata durumunda mevcut değerleri koru
     }
-    if (activeUsersElement) {
-        activeUsersElement.textContent = activeUsers.toLocaleString();
-    }
-    
-    console.log('📊 İstatistikler güncellendi:', {
-        downloads: downloadCount,
-        users: activeUsers,
-        downloadChange: downloadChange,
-        userChange: userChange
-    });
 }
 
 // Add some interactive effects
