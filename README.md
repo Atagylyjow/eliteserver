@@ -1,6 +1,6 @@
 # VPN Script Hub - Telegram Web App
 
-Güzel arayüzlü bir Telegram Web App'i ile VPN script dosyalarını reklam izleyerek dağıtın. DarkTunnel ve HTTP Custom VPN scriptleri desteklenir.
+Bu proje, Telegram Web App teknolojisi kullanarak VPN script dağıtımı yapan bir web uygulamasıdır.
 
 ## 🌟 Özellikler
 
@@ -13,14 +13,19 @@ Güzel arayüzlü bir Telegram Web App'i ile VPN script dosyalarını reklam izl
 - **İstatistikler**: Toplam indirme ve aktif kullanıcı sayıları
 - **Animasyonlar**: Smooth geçişler ve hover efektleri
 
+## 🌐 Canlı Demo
+
+Web App'e erişmek için: [GitHub Pages Link](https://your-username.github.io/your-repo-name/)
+
 ## 📁 Dosya Yapısı
 
 ```
-Telegram Web App/
 ├── index.html          # Ana HTML dosyası
 ├── styles.css          # CSS stilleri
-├── script.js           # JavaScript fonksiyonları
-└── README.md           # Bu dosya
+├── script.js           # JavaScript kodu
+├── README.md           # Bu dosya
+└── .github/workflows/  # GitHub Actions
+    └── deploy.yml      # Otomatik deploy
 ```
 
 ## 🚀 Kurulum
@@ -92,17 +97,64 @@ const token = 'YOUR_BOT_TOKEN_HERE'; // Buraya gerçek token'ınızı yazın
 web_app: { url: 'https://your-domain.com/index.html' } // Buraya gerçek URL'nizi yazın
 ```
 
-## 🏃‍♂️ Çalıştırma
+## 🛠️ Teknolojiler
 
-### Geliştirme Modu
+- **Frontend:** HTML5, CSS3, JavaScript (ES6+)
+- **Telegram API:** Telegram Web App SDK
+- **Hosting:** GitHub Pages
+- **Güvenlik:** HMAC-SHA256 doğrulaması
+
+## 🔧 Kurulum
+
+1. Repository'yi klonlayın:
 ```bash
-npm run dev
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
 ```
 
-### Prodüksiyon Modu
-```bash
-npm start
-```
+2. GitHub Pages'da yayınlayın:
+   - Repository Settings → Pages
+   - Source: Deploy from branch
+   - Branch: main, folder: / (root)
+
+## 🔒 Güvenlik
+
+- Web App sadece Telegram'dan açıldığında çalışır
+- HMAC doğrulaması ile güvenlik sağlanır
+- HTTPS zorunluluğu
+- XSS ve CSRF koruması
+
+## 📊 Desteklenen Scriptler
+
+- **DarkTunnel** - Gelişmiş tünel teknolojisi
+- **HTTP Custom** - Özelleştirilebilir HTTP bağlantı
+
+## 🤝 Katkıda Bulunma
+
+1. Fork yapın
+2. Feature branch oluşturun (`git checkout -b feature/AmazingFeature`)
+3. Commit yapın (`git commit -m 'Add some AmazingFeature'`)
+4. Push yapın (`git push origin feature/AmazingFeature`)
+5. Pull Request açın
+
+## 📄 Lisans
+
+Bu proje MIT lisansı altında lisanslanmıştır.
+
+## 📞 İletişim
+
+- **GitHub:** [@your-username](https://github.com/your-username)
+- **Telegram:** @your_bot_username
+
+## 🙏 Teşekkürler
+
+- Telegram Web App API
+- Font Awesome ikonları
+- GitHub Pages hosting
+
+---
+
+⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
 
 ## 📱 Kullanım
 
