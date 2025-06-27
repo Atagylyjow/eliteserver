@@ -23,17 +23,21 @@ function initializeTelegramWebApp() {
             icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         }
         
-        // Initialize AdsGram SDK
-        initializeAdsGram();
-        
-        // Load initial stats
-        loadStats();
-        
-        console.log('Telegram WebApp başlatıldı');
+        console.log('✅ Telegram WebApp başlatıldı');
     } else {
-        // Show message for non-Telegram environment
-        showTelegramOnlyMessage();
+        console.log('ℹ️ Telegram WebApp bulunamadı, normal web modunda çalışıyor');
+        // Normal web modu için varsayılan tema
+        document.documentElement.setAttribute('data-theme', 'light');
     }
+    
+    // Initialize AdsGram SDK
+    initializeAdsGram();
+    
+    // Load initial stats
+    loadStats();
+    
+    // Show main content
+    document.querySelector('.app-container').style.display = 'block';
 }
 
 // Load real-time stats from backend
@@ -89,33 +93,6 @@ async function sendDataToBackend(data) {
         // Fallback to Telegram only
         sendDataToBot(data);
     }
-}
-
-// Show message for non-Telegram users
-function showTelegramOnlyMessage() {
-    const appContainer = document.querySelector('.app-container');
-    appContainer.innerHTML = `
-        <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div style="max-width: 400px;">
-                <h1 style="color: #e74c3c; margin-bottom: 20px;">🚫 Erişim Engellendi</h1>
-                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-                    Bu uygulama sadece Telegram Web App üzerinden kullanılabilir.
-                </p>
-                <p style="font-size: 14px; color: #666; margin-bottom: 30px;">
-                    Lütfen Telegram'da botunuzu açın ve "VPN Script Hub'ı Aç" butonuna tıklayın.
-                </p>
-                <div style="margin-top: 30px;">
-                    <a href="https://t.me/your_bot_username" 
-                       style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                        📱 Botu Aç
-                    </a>
-                </div>
-                <div style="margin-top: 20px; font-size: 12px; color: #999;">
-                    Eğer botunuzu bulamıyorsanız, @BotFather ile yeni bir bot oluşturun.
-                </div>
-            </div>
-        </div>
-    `;
 }
 
 // Initialize when DOM is loaded
