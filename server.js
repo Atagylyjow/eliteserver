@@ -134,6 +134,10 @@ function updateStats(scriptType) {
 app.get('/api/stats', (req, res) => {
     // Aktif kullanıcı sayısını güncelle
     database.stats.activeUsers = Object.keys(database.users).length;
+    
+    // Toplam kullanıcı sayısı - unique user ID sayısı
+    database.stats.totalUsers = Object.keys(database.users).length;
+    
     res.json(database.stats);
 });
 
@@ -241,7 +245,7 @@ Bu bot ile güvenli VPN script dosyalarını reklam izleyerek elde edebilirsiniz
 
 **İstatistikler:**
 📥 Toplam İndirme: ${database.stats.totalDownloads}
-👥 Aktif Kullanıcı: ${Object.keys(database.users).length}
+👥 Toplam Kullanıcı: ${Object.keys(database.users).length}
 
 ${isAdmin(chatId) ? '\n🔧 **Yönetici Komutları:**\n/admin - Yönetici paneli\n/stats - Detaylı istatistikler' : ''}
 `;
@@ -301,7 +305,7 @@ bot.onText(/\/admin/, (msg) => {
 
 **Hızlı İstatistikler:**
 📥 Toplam İndirme: ${database.stats.totalDownloads}
-👥 Aktif Kullanıcı: ${Object.keys(database.users).length}
+👥 Toplam Kullanıcı: ${Object.keys(database.users).length}
 📊 Script Sayısı: ${Object.keys(database.vpnScripts).length}
     `;
     
@@ -372,7 +376,7 @@ function handleScriptAdding(msg, state) {
     } else if (state.step === 'name') {
         state.name = text;
         state.step = 'filename';
-        bot.sendMessage(chatId, '📄 Dosya adını gönderin (örn: script.conf):');
+        bot.sendMessage(chatId, '📄 Dosya adını gönderin (herhangi bir uzantı kabul edilir, örn: script.conf, script.txt, script.json):');
         
     } else if (state.step === 'filename') {
         state.filename = text;
@@ -449,6 +453,7 @@ bot.on('callback_query', (query) => {
 • Script Sayısı: ${Object.keys(database.vpnScripts).length}
 
 👥 **Kullanıcılar:**
+• Toplam: ${Object.keys(database.users).length}
 • Aktif: ${Object.keys(database.users).length}
 
 📈 **Script Bazında:**
