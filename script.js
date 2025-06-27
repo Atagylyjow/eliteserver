@@ -1,3 +1,6 @@
+// Backend API URL'si
+const API_BASE_URL = 'http://localhost:3000/api';
+
 // Telegram Web App Integration
 let tg = null;
 
@@ -33,6 +36,9 @@ function initializeTelegramWebApp() {
             // Show main content
             document.querySelector('.app-container').style.display = 'block';
             
+            // Load real-time stats
+            loadStats();
+            
         } else {
             console.log('❌ No initData - not running in Telegram');
             showTelegramOnlyMessage();
@@ -40,6 +46,61 @@ function initializeTelegramWebApp() {
     } else {
         console.log('❌ Telegram WebApp not available');
         showTelegramOnlyMessage();
+    }
+}
+
+// Load real-time stats from backend
+async function loadStats() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stats`);
+        const stats = await response.json();
+        
+        // Update UI with real stats
+        document.getElementById('total-downloads').textContent = stats.totalDownloads.toLocaleString();
+        document.getElementById('active-users').textContent = stats.activeUsers.toLocaleString();
+        
+        // Update download counts
+        downloadCount = stats.totalDownloads;
+        activeUsers = stats.activeUsers;
+        
+    } catch (error) {
+        console.error('Stats yüklenirken hata:', error);
+        // Fallback to local stats
+    }
+}
+
+// Send data to backend
+async function sendDataToBackend(data) {
+    try {
+        const userId = tg.initDataUnsafe?.user?.id || 'unknown';
+        
+        const response = await fetch(`${API_BASE_URL}/download`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                scriptType: data.script,
+                userId: userId,
+                timestamp: Date.now()
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Update local stats
+            downloadCount = result.stats.totalDownloads;
+            document.getElementById('total-downloads').textContent = downloadCount.toLocaleString();
+            
+            // Send data to Telegram bot
+            sendDataToBot(data);
+        }
+        
+    } catch (error) {
+        console.error('Backend\'e veri gönderirken hata:', error);
+        // Fallback to Telegram only
+        sendDataToBot(data);
     }
 }
 
@@ -328,9 +389,8 @@ function downloadScript(script) {
     // Hide modal
     hideDownloadModal();
     
-    // Send data to Telegram with authentication
-    sendDataToBot({
-        action: 'download',
+    // Send data to backend
+    sendDataToBackend({
         script: currentScript,
         timestamp: Date.now()
     });
