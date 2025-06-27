@@ -3,44 +3,94 @@ let tg = null;
 
 // Wait for Telegram WebApp to load
 function initializeTelegramWebApp() {
+    console.log('🚀 initializeTelegramWebApp başlatılıyor...');
+    console.log('🔍 window.Telegram:', typeof window.Telegram);
+    console.log('🔍 window.Telegram.WebApp:', typeof window.Telegram?.WebApp);
+    
     // Check if Telegram WebApp is available
     if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-        tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        console.log('✅ Telegram WebApp bulundu, başlatılıyor...');
         
-        // Set theme
-        const theme = tg.colorScheme;
-        document.documentElement.setAttribute('data-theme', theme);
-        
-        // Update theme toggle icon
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            const icon = themeToggle.querySelector('i');
-            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        try {
+            tg = window.Telegram.WebApp;
+            console.log('📱 Telegram WebApp objesi:', tg);
+            
+            tg.ready();
+            console.log('✅ tg.ready() çağrıldı');
+            
+            tg.expand();
+            console.log('✅ tg.expand() çağrıldı');
+            
+            // Set theme
+            const theme = tg.colorScheme;
+            console.log('🎨 Tema:', theme);
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            // Update theme toggle icon
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                const icon = themeToggle.querySelector('i');
+                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+                console.log('✅ Tema toggle güncellendi');
+            }
+            
+            console.log('✅ Telegram WebApp başarıyla başlatıldı');
+        } catch (error) {
+            console.error('❌ Telegram WebApp başlatılırken hata:', error);
         }
-        
-        console.log('✅ Telegram WebApp başlatıldı');
     } else {
         console.log('ℹ️ Telegram WebApp bulunamadı, normal web modunda çalışıyor');
         // Normal web modu için varsayılan tema
         document.documentElement.setAttribute('data-theme', 'light');
     }
     
+    console.log('🔧 AdsGram başlatılıyor...');
     // Initialize AdsGram SDK
     initializeAdsGram();
     
+    console.log('📊 İstatistikler yükleniyor...');
     // Load initial stats
     loadStats();
     
+    console.log('👁️ App container kontrol ediliyor...');
     // Show main content
     const appContainer = document.querySelector('.app-container');
+    console.log('🔍 App container bulundu:', !!appContainer);
+    
     if (appContainer) {
-        appContainer.style.display = 'block';
+        // Zorla görünür hale getir
+        appContainer.style.display = 'flex';
+        appContainer.style.visibility = 'visible';
+        appContainer.style.opacity = '1';
+        appContainer.style.position = 'relative';
+        appContainer.style.zIndex = '1';
+        
         console.log('✅ App container görünür hale getirildi');
+        
+        // Ek kontrol
+        console.log('🔍 App container display style:', appContainer.style.display);
+        console.log('🔍 App container visibility:', appContainer.style.visibility);
+        console.log('🔍 App container opacity:', appContainer.style.opacity);
+        
+        // Body'yi de kontrol et
+        document.body.style.background = 'var(--bg-primary)';
+        document.body.style.color = 'var(--text-primary)';
+        console.log('✅ Body stilleri güncellendi');
+        
     } else {
         console.error('❌ App container bulunamadı');
+        
+        // Alternatif olarak body'ye içerik ekle
+        document.body.innerHTML = `
+            <div class="app-container" style="display: flex; flex-direction: column; min-height: 100vh; background: var(--bg-primary); color: var(--text-primary);">
+                <h1>VPN Script Hub</h1>
+                <p>Uygulama yükleniyor...</p>
+            </div>
+        `;
+        console.log('⚠️ Alternatif app container oluşturuldu');
     }
+    
+    console.log('🎉 initializeTelegramWebApp tamamlandı');
 }
 
 // Load real-time stats from backend
