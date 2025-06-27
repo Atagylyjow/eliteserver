@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Script Hub - Telegram Web App</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="app-container" style="display: none;">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>VPN Script Hub</span>
+                </div>
+                <div class="theme-toggle">
+                    <i class="fas fa-moon" id="theme-toggle"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <div class="welcome-card">
+                    <div class="welcome-icon">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h1>VPN Script Hub'a Hoş Geldiniz</h1>
+                    <p>Güvenli ve hızlı VPN scriptlerini reklam izleyerek elde edin</p>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="total-downloads">1,234</span>
+                            <span class="stat-label">Toplam İndirme</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="active-users">567</span>
+                            <span class="stat-label">Aktif Kullanıcı</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VPN Scripts Section -->
+            <section class="scripts-section">
+                <h2>VPN Scriptleri</h2>
+                <div class="scripts-grid">
+                    <!-- DarkTunnel Script -->
+                    <div class="script-card" data-script="darktunnel">
+                        <div class="script-icon">
+                            <i class="fas fa-tunnel"></i>
+                        </div>
+                        <div class="script-info">
+                            <h3>DarkTunnel</h3>
+                            <p>Gelişmiş tünel teknolojisi ile güvenli bağlantı</p>
+                            <div class="script-features">
+                                <span class="feature-tag">Hızlı</span>
+                                <span class="feature-tag">Güvenli</span>
+                                <span class="feature-tag">Kararlı</span>
+                            </div>
+                        </div>
+                        <div class="script-action">
+                            <button class="btn btn-primary unlock-btn" data-script="darktunnel">
+                                <i class="fas fa-play"></i>
+                                Reklam İzle & İndir
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- HTTP Custom Script -->
+                    <div class="script-card" data-script="httpcustom">
+                        <div class="script-icon">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="script-info">
+                            <h3>HTTP Custom</h3>
+                            <p>HTTP/HTTPS protokolü ile özelleştirilebilir bağlantı</p>
+                            <div class="script-features">
+                                <span class="feature-tag">Özelleştirilebilir</span>
+                                <span class="feature-tag">Çoklu Protokol</span>
+                                <span class="feature-tag">Kolay Kurulum</span>
+                            </div>
+                        </div>
+                        <div class="script-action">
+                            <button class="btn btn-primary unlock-btn" data-script="httpcustom">
+                                <i class="fas fa-play"></i>
+                                Reklam İzle & İndir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Instructions Section -->
+            <section class="instructions-section">
+                <h2>Nasıl Kullanılır?</h2>
+                <div class="instructions-grid">
+                    <div class="instruction-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Script Seçin</h3>
+                            <p>İstediğiniz VPN scriptini seçin</p>
+                        </div>
+                    </div>
+                    <div class="instruction-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Reklam İzleyin</h3>
+                            <p>Kısa reklamı izleyerek scripti açın</p>
+                        </div>
+                    </div>
+                    <div class="instruction-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>İndirin</h3>
+                            <p>Script dosyasını cihazınıza indirin</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Ad Modal -->
+        <div class="modal" id="ad-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Reklam İzleniyor</h3>
+                    <button class="modal-close" id="modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="ad-container">
+                        <div class="ad-placeholder">
+                            <i class="fas fa-ad"></i>
+                            <p>Reklam yükleniyor...</p>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <div class="timer" id="timer">30</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download Modal -->
+        <div class="modal" id="download-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Script İndir</h3>
+                    <button class="modal-close" id="download-modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="download-info">
+                        <div class="script-details">
+                            <h4 id="download-script-name">Script Adı</h4>
+                            <p id="download-script-desc">Script açıklaması</p>
+                        </div>
+                        <div class="download-options">
+                            <button class="btn btn-success download-btn" id="download-btn">
+                                <i class="fas fa-download"></i>
+                                İndir
+                            </button>
+                            <button class="btn btn-secondary copy-btn" id="copy-btn">
+                                <i class="fas fa-copy"></i>
+                                Kopyala
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

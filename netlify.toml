@@ -1,0 +1,13 @@
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "ALLOWALL"
+    Content-Security-Policy = "frame-ancestors 'self' https://web.telegram.org https://telegram.org;"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
