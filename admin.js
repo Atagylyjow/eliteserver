@@ -4,12 +4,142 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // Admin ID (kendi chat ID'nizi buraya yazın)
 const ADMIN_ID = 7749779502; // Buraya kendi chat ID'nizi yazın
 
-// Sayfa yüklendiğinde istatistikleri yükle
+// Script verilerini sakla
+let allScripts = {};
+
+// Sayfa yüklendiğinde istatistikleri ve scriptleri yükle
 document.addEventListener('DOMContentLoaded', function() {
     loadStats();
-    // Her 30 saniyede bir istatistikleri güncelle
-    setInterval(loadStats, 30000);
+    loadAllScripts();
+    // Her 30 saniyede bir güncelle
+    setInterval(() => {
+        loadStats();
+        loadAllScripts();
+    }, 30000);
 });
+
+// Tüm scriptleri yükle (admin için)
+async function loadAllScripts() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/scripts?adminId=${ADMIN_ID}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            allScripts = result.scripts;
+            updateScriptsList();
+        } else {
+            showNotification(result.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Scriptler yüklenirken hata:', error);
+        showNotification('Scriptler yüklenemedi', 'error');
+    }
+}
+
+// Script listesini güncelle
+function updateScriptsList() {
+    const scriptsContainer = document.getElementById('scripts-list');
+    if (!scriptsContainer) return;
+    
+    scriptsContainer.innerHTML = '';
+    
+    Object.entries(allScripts).forEach(([id, script]) => {
+        const scriptItem = document.createElement('div');
+        scriptItem.className = 'script-item';
+        scriptItem.innerHTML = `
+            <div class="script-info">
+                <h4>${script.name} (${id})</h4>
+                <p>${script.description}</p>
+                <small>📄 ${script.filename} | 📊 ${script.downloads || 0} indirme</small>
+            </div>
+            <div class="script-actions">
+                <button onclick="editScript('${id}')" class="btn-edit">✏️ Düzenle</button>
+                <button onclick="toggleScript('${id}')" class="btn-toggle ${script.enabled ? 'active' : 'inactive'}">
+                    ${script.enabled ? '✅ Aktif' : '❌ Pasif'}
+                </button>
+                <button onclick="deleteScript('${id}')" class="btn-delete">🗑️ Sil</button>
+            </div>
+        `;
+        scriptsContainer.appendChild(scriptItem);
+    });
+}
+
+// Script düzenleme
+async function editScript(scriptId) {
+    const script = allScripts[scriptId];
+    if (!script) return;
+    
+    // Form alanlarını doldur
+    document.getElementById('edit-script-id').value = scriptId;
+    document.getElementById('edit-script-name').value = script.name;
+    document.getElementById('edit-script-description').value = script.description;
+    document.getElementById('edit-script-filename').value = script.filename;
+    document.getElementById('edit-script-content').value = script.content;
+    
+    // Modal'ı göster
+    document.getElementById('edit-script-modal').classList.add('show');
+}
+
+// Script durum değiştirme
+async function toggleScript(scriptId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/toggle-script/${scriptId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(result.message, 'success');
+            await loadAllScripts(); // Listeyi yenile
+        } else {
+            showNotification(result.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Script durumu değiştirilirken hata:', error);
+        showNotification('Script durumu değiştirilemedi', 'error');
+    }
+}
+
+// Script silme
+async function deleteScript(scriptId) {
+    if (!confirm('Bu scripti silmek istediğinizden emin misiniz?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/delete-script/${scriptId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(result.message, 'success');
+            await loadAllScripts(); // Listeyi yenile
+        } else {
+            showNotification(result.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Script silinirken hata:', error);
+        showNotification('Script silinemedi', 'error');
+    }
+}
 
 // İstatistikleri yükle
 async function loadStats() {
@@ -20,17 +150,9 @@ async function loadStats() {
         // UI'yi güncelle
         document.getElementById('total-downloads').textContent = stats.totalDownloads.toLocaleString();
         document.getElementById('active-users').textContent = stats.activeUsers.toLocaleString();
-        document.getElementById('darktunnel-downloads').textContent = stats.darktunnelDownloads.toLocaleString();
-        document.getElementById('httpcustom-downloads').textContent = stats.httpcustomDownloads.toLocaleString();
+        document.getElementById('script-count').textContent = stats.scriptCount || 0;
+        document.getElementById('active-scripts').textContent = stats.activeScripts || 0;
         document.getElementById('last-update').textContent = new Date(stats.lastUpdated).toLocaleString('tr-TR');
-        
-        // Popülerlik oranını hesapla
-        const total = stats.darktunnelDownloads + stats.httpcustomDownloads;
-        if (total > 0) {
-            const darktunnelRatio = Math.round((stats.darktunnelDownloads / total) * 100);
-            const httpcustomRatio = Math.round((stats.httpcustomDownloads / total) * 100);
-            document.getElementById('popularity-ratio').textContent = `${darktunnelRatio}% / ${httpcustomRatio}%`;
-        }
         
     } catch (error) {
         console.error('İstatistikler yüklenirken hata:', error);
@@ -41,12 +163,18 @@ async function loadStats() {
 // İstatistikleri yenile
 function refreshStats() {
     loadStats();
-    showNotification('İstatistikler yenilendi', 'success');
+    loadAllScripts();
+    showNotification('Veriler yenilendi', 'success');
 }
 
 // Yeni script ekleme modalını göster
 function showAddScriptModal() {
     document.getElementById('add-script-modal').classList.add('show');
+}
+
+// Script düzenleme modalını göster
+function showEditScriptModal() {
+    document.getElementById('edit-script-modal').classList.add('show');
 }
 
 // Toplu mesaj modalını göster
@@ -89,6 +217,7 @@ document.getElementById('add-script-form').addEventListener('submit', async func
             showNotification('Script başarıyla eklendi', 'success');
             hideModal('add-script-modal');
             document.getElementById('add-script-form').reset();
+            await loadAllScripts(); // Listeyi yenile
         } else {
             showNotification(result.error, 'error');
         }
@@ -96,6 +225,46 @@ document.getElementById('add-script-form').addEventListener('submit', async func
     } catch (error) {
         console.error('Script eklenirken hata:', error);
         showNotification('Script eklenemedi', 'error');
+    }
+});
+
+// Script düzenleme formu
+document.getElementById('edit-script-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const scriptId = document.getElementById('edit-script-id').value;
+    const updates = {
+        name: document.getElementById('edit-script-name').value,
+        description: document.getElementById('edit-script-description').value,
+        content: document.getElementById('edit-script-content').value,
+        filename: document.getElementById('edit-script-filename').value
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/update-script/${scriptId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID,
+                ...updates
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Script başarıyla güncellendi', 'success');
+            hideModal('edit-script-modal');
+            await loadAllScripts(); // Listeyi yenile
+        } else {
+            showNotification(result.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Script güncellenirken hata:', error);
+        showNotification('Script güncellenemedi', 'error');
     }
 });
 

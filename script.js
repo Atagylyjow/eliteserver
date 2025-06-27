@@ -4,6 +4,10 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // Telegram Web App Integration
 let tg = null;
 
+// Script verilerini sakla
+let scripts = {};
+let currentStats = {};
+
 // Wait for Telegram WebApp to load
 function initializeTelegramWebApp() {
     console.log('🚀 initializeTelegramWebApp başlatılıyor...');
@@ -55,6 +59,10 @@ function initializeTelegramWebApp() {
     // Load initial stats
     loadStats();
     
+    console.log('📝 Scriptler yükleniyor...');
+    // Load scripts
+    loadScripts();
+    
     console.log('👁️ App container kontrol ediliyor...');
     // Show main content
     const appContainer = document.querySelector('.app-container');
@@ -96,6 +104,140 @@ function initializeTelegramWebApp() {
     console.log('🎉 initializeTelegramWebApp tamamlandı');
 }
 
+// Load scripts from backend
+async function loadScripts() {
+    try {
+        console.log('📝 Backend\'den scriptler yükleniyor...');
+        
+        const response = await fetch(`${API_BASE_URL}/scripts`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        scripts = await response.json();
+        console.log('📋 Backend scriptleri:', scripts);
+        
+        // UI'yi güncelle
+        updateScriptsUI();
+        
+        console.log('✅ Scriptler backend\'den yüklendi:', Object.keys(scripts).length);
+        
+    } catch (error) {
+        console.error('❌ Backend\'den scriptler yüklenirken hata:', error);
+        
+        // Fallback: varsayılan scriptler
+        console.log('🔄 Fallback scriptleri kullanılıyor...');
+        scripts = {
+            darktunnel: {
+                id: 'darktunnel',
+                name: 'DarkTunnel',
+                description: 'Gelişmiş tünel teknolojisi ile güvenli bağlantı',
+                filename: 'darktunnel.conf',
+                downloads: 0
+            },
+            httpcustom: {
+                id: 'httpcustom',
+                name: 'HTTP Custom',
+                description: 'HTTP/HTTPS protokolü ile özelleştirilebilir bağlantı',
+                filename: 'httpcustom.conf',
+                downloads: 0
+            }
+        };
+        
+        updateScriptsUI();
+    }
+}
+
+// Update scripts UI
+function updateScriptsUI() {
+    const scriptsContainer = document.getElementById('scripts-container');
+    if (!scriptsContainer) {
+        console.error('❌ Scripts container bulunamadı');
+        return;
+    }
+    
+    // Clear existing content
+    scriptsContainer.innerHTML = '';
+    
+    // Add scripts dynamically
+    Object.values(scripts).forEach(script => {
+        const scriptCard = createScriptCard(script);
+        scriptsContainer.appendChild(scriptCard);
+    });
+    
+    console.log('✅ Script UI güncellendi:', Object.keys(scripts).length, 'script');
+}
+
+// Create script card
+function createScriptCard(script) {
+    const card = document.createElement('div');
+    card.className = 'script-card';
+    card.dataset.script = script.id;
+    
+    // Script icon'u belirle
+    let icon = 'fas fa-shield-alt'; // varsayılan
+    if (script.id.includes('tunnel') || script.id.includes('dark')) {
+        icon = 'fas fa-tunnel';
+    } else if (script.id.includes('http') || script.id.includes('custom')) {
+        icon = 'fas fa-globe';
+    } else if (script.id.includes('wireguard')) {
+        icon = 'fas fa-network-wired';
+    } else if (script.id.includes('openvpn')) {
+        icon = 'fas fa-vpn';
+    }
+    
+    // Feature tag'leri oluştur
+    const features = [];
+    if (script.description.includes('hızlı') || script.description.includes('fast')) {
+        features.push('Hızlı');
+    }
+    if (script.description.includes('güvenli') || script.description.includes('secure')) {
+        features.push('Güvenli');
+    }
+    if (script.description.includes('kararlı') || script.description.includes('stable')) {
+        features.push('Kararlı');
+    }
+    if (script.description.includes('özelleştirilebilir') || script.description.includes('customizable')) {
+        features.push('Özelleştirilebilir');
+    }
+    if (script.description.includes('protokol') || script.description.includes('protocol')) {
+        features.push('Çoklu Protokol');
+    }
+    if (script.description.includes('kolay') || script.description.includes('easy')) {
+        features.push('Kolay Kurulum');
+    }
+    
+    // Varsayılan feature'lar
+    if (features.length === 0) {
+        features.push('Hızlı', 'Güvenli', 'Kararlı');
+    }
+    
+    const featureTags = features.map(feature => 
+        `<span class="feature-tag">${feature}</span>`
+    ).join('');
+    
+    card.innerHTML = `
+        <div class="script-icon">
+            <i class="${icon}"></i>
+        </div>
+        <div class="script-info">
+            <h3>${script.name}</h3>
+            <p>${script.description}</p>
+            <div class="script-features">
+                ${featureTags}
+            </div>
+        </div>
+        <div class="script-action">
+            <button class="btn btn-primary unlock-btn" data-script="${script.id}">
+                <i class="fas fa-play"></i>
+                Reklam İzle & İndir
+            </button>
+        </div>
+    `;
+    
+    return card;
+}
+
 // Load real-time stats from backend
 async function loadStats() {
     try {
@@ -106,48 +248,44 @@ async function loadStats() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const stats = await response.json();
-        console.log('📈 Backend istatistikleri:', stats);
-        
-        // Gerçek verileri kullan
-        downloadCount = stats.totalDownloads || 0;
-        activeUsers = stats.activeUsers || 0;
-        const totalUsers = stats.totalUsers || 0;
+        currentStats = await response.json();
+        console.log('📈 Backend istatistikleri:', currentStats);
         
         // UI'yi güncelle
-        if (totalDownloadsElement) {
-            totalDownloadsElement.textContent = downloadCount.toLocaleString();
-        }
-        if (activeUsersElement) {
-            activeUsersElement.textContent = activeUsers.toLocaleString();
-        }
+        updateStatsUI();
         
-        // Toplam kullanıcı sayısını da göster (yeni element ekleyelim)
-        const totalUsersElement = document.getElementById('total-users');
-        if (totalUsersElement) {
-            totalUsersElement.textContent = totalUsers.toLocaleString();
-        }
-        
-        console.log('✅ İstatistikler backend\'den yüklendi:', {
-            downloads: downloadCount,
-            activeUsers: activeUsers,
-            totalUsers: totalUsers
-        });
+        console.log('✅ İstatistikler backend\'den yüklendi:', currentStats);
         
     } catch (error) {
         console.error('❌ Backend\'den istatistikler yüklenirken hata:', error);
         
         // Fallback: varsayılan değerler
         console.log('🔄 Fallback değerleri kullanılıyor...');
-        downloadCount = Math.floor(Math.random() * 1000) + 500;
-        activeUsers = Math.floor(Math.random() * 100) + 50;
+        currentStats = {
+            totalDownloads: Math.floor(Math.random() * 1000) + 500,
+            activeUsers: Math.floor(Math.random() * 100) + 50,
+            scriptCount: Object.keys(scripts).length,
+            activeScripts: Object.keys(scripts).length
+        };
         
-        if (totalDownloadsElement) {
-            totalDownloadsElement.textContent = downloadCount.toLocaleString();
-        }
-        if (activeUsersElement) {
-            activeUsersElement.textContent = activeUsers.toLocaleString();
-        }
+        updateStatsUI();
+    }
+}
+
+// Update stats UI
+function updateStatsUI() {
+    const totalDownloadsElement = document.getElementById('total-downloads');
+    const activeUsersElement = document.getElementById('active-users');
+    const scriptCountElement = document.getElementById('script-count');
+    
+    if (totalDownloadsElement) {
+        totalDownloadsElement.textContent = currentStats.totalDownloads?.toLocaleString() || '0';
+    }
+    if (activeUsersElement) {
+        activeUsersElement.textContent = currentStats.activeUsers?.toLocaleString() || '0';
+    }
+    if (scriptCountElement) {
+        scriptCountElement.textContent = currentStats.activeScripts?.toString() || '0';
     }
 }
 
@@ -368,51 +506,38 @@ console.log('📄 Download script desc:', !!downloadScriptDesc);
 console.log('📈 Total downloads:', !!totalDownloadsElement);
 console.log('👥 Active users:', !!activeUsersElement);
 
-// Theme Toggle
-themeToggle.addEventListener('click', () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
-    document.documentElement.setAttribute('data-theme', newTheme);
-    
-    // Update icon
-    const icon = themeToggle.querySelector('i');
-    icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-    
-    // Save theme preference
-    localStorage.setItem('theme', newTheme);
-    
-    // Update Telegram Web App theme
-    if (tg) {
-        tg.setHeaderColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
-        tg.setBackgroundColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            
+            const icon = themeToggle.querySelector('i');
+            icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        });
     }
-});
-
-// Load saved theme
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme) {
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    const icon = themeToggle.querySelector('i');
-    icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-}
-
-// Unlock buttons
-document.querySelectorAll('.unlock-btn').forEach(btn => {
-    console.log('🔗 Unlock button bulundu:', btn);
-    btn.addEventListener('click', (e) => {
-        console.log('🎯 Unlock button tıklandı!');
-        const scriptCard = e.target.closest('.script-card');
-        console.log('📋 Script card:', scriptCard);
-        
-        if (scriptCard) {
-            const scriptType = scriptCard.dataset.script;
-            console.log('📝 Script type:', scriptType);
-            currentScript = scriptType;
-            console.log('🎬 Reklam modalı açılıyor...');
-            showAdModal();
-        } else {
-            console.error('❌ Script card bulunamadı!');
+    
+    // Unlock button event delegation (for dynamically created elements)
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.unlock-btn')) {
+            e.preventDefault();
+            console.log('🎯 Unlock button tıklandı!');
+            const scriptCard = e.target.closest('.script-card');
+            console.log('📋 Script card:', scriptCard);
+            
+            if (scriptCard) {
+                const scriptId = scriptCard.dataset.script;
+                console.log('📝 Script ID:', scriptId);
+                currentScript = scriptId;
+                console.log('🎬 Reklam modalı açılıyor...');
+                showAdModal();
+            } else {
+                console.error('❌ Script card bulunamadı!');
+            }
         }
     });
 });
@@ -456,7 +581,13 @@ async function showAdsGramAd() {
 
 // Show Download Modal
 function showDownloadModal() {
-    const script = vpnScripts[currentScript];
+    if (!currentScript || !scripts[currentScript]) {
+        console.error('❌ Script bilgisi bulunamadı!');
+        showNotification('❌ Script bilgisi bulunamadı', 'error');
+        return;
+    }
+    
+    const script = scripts[currentScript];
     downloadScriptName.textContent = script.name;
     downloadScriptDesc.textContent = script.description;
     downloadModal.classList.add('show');
@@ -486,61 +617,79 @@ downloadModal.addEventListener('click', (e) => {
 
 // Download Button
 downloadBtn.addEventListener('click', () => {
-    const script = vpnScripts[currentScript];
-    downloadScript(script);
+    if (currentScript) {
+        downloadScript(currentScript);
+    } else {
+        console.error('❌ Current script bulunamadı!');
+        showNotification('❌ Script bilgisi bulunamadı', 'error');
+    }
 });
 
 // Download Script Function
-async function downloadScript(script) {
-    const blob = new Blob([script.content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = script.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    // Backend'e indirme verisi gönder
+async function downloadScript(scriptId) {
     try {
+        console.log('📥 Script indirme başlatılıyor:', scriptId);
+        
+        // Backend'den script içeriğini al
+        const response = await fetch(`${API_BASE_URL}/scripts/${scriptId}`);
+        if (!response.ok) {
+            throw new Error(`Script bulunamadı: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        const script = result.script;
+        
+        console.log('📋 Script verisi alındı:', script);
+        
+        // Dosyayı indir
+        const blob = new Blob([script.content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = script.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Backend'e indirme verisi gönder
         const userId = tg?.initDataUnsafe?.user?.id || 'unknown';
         
-        const response = await fetch(`${API_BASE_URL}/download`, {
+        const downloadResponse = await fetch(`${API_BASE_URL}/download`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                scriptType: currentScript,
+                scriptId: scriptId,
                 userId: userId,
                 timestamp: Date.now()
             })
         });
         
-        if (response.ok) {
-            const result = await response.json();
-            console.log('✅ İndirme verisi backend\'e gönderildi:', result);
+        if (downloadResponse.ok) {
+            const downloadResult = await downloadResponse.json();
+            console.log('✅ İndirme verisi backend\'e gönderildi:', downloadResult);
             
-            // Backend'den güncel istatistikleri al
-            await updateStats();
+            // Backend'den güncel istatistikleri ve scriptleri al
+            await loadStats();
+            await loadScripts();
         }
         
+        // Show success message
+        showNotification(`${script.name} başarıyla indirildi!`, 'success');
+        
+        // Send data to Telegram bot
+        sendDataToBot({
+            action: 'download',
+            script: scriptId,
+            timestamp: Date.now()
+        });
+        
     } catch (error) {
-        console.error('❌ Backend\'e indirme verisi gönderilemedi:', error);
+        console.error('❌ Script indirme hatası:', error);
+        showNotification('❌ Script indirilemedi. Lütfen tekrar deneyin.', 'error');
     }
-    
-    // Show success message
-    showNotification('Script başarıyla indirildi!', 'success');
-    
-    // Hide modal
-    hideDownloadModal();
-    
-    // Send data to Telegram bot
-    sendDataToBot({
-        script: currentScript,
-        timestamp: Date.now()
-    });
 }
 
 // Show Notification Function
@@ -594,41 +743,13 @@ async function updateStats() {
     try {
         console.log('📊 İstatistikler güncelleniyor...');
         
-        const response = await fetch(`${API_BASE_URL}/stats`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        await loadStats();
+        await loadScripts();
         
-        const stats = await response.json();
-        
-        // Gerçek verileri kullan
-        downloadCount = stats.totalDownloads || 0;
-        activeUsers = stats.activeUsers || 0;
-        const totalUsers = stats.totalUsers || 0;
-        
-        // UI'yi güncelle
-        if (totalDownloadsElement) {
-            totalDownloadsElement.textContent = downloadCount.toLocaleString();
-        }
-        if (activeUsersElement) {
-            activeUsersElement.textContent = activeUsers.toLocaleString();
-        }
-        
-        // Toplam kullanıcı sayısını da göster
-        const totalUsersElement = document.getElementById('total-users');
-        if (totalUsersElement) {
-            totalUsersElement.textContent = totalUsers.toLocaleString();
-        }
-        
-        console.log('✅ İstatistikler güncellendi:', {
-            downloads: downloadCount,
-            activeUsers: activeUsers,
-            totalUsers: totalUsers
-        });
+        console.log('✅ İstatistikler ve scriptler güncellendi');
         
     } catch (error) {
         console.error('❌ İstatistikler güncellenirken hata:', error);
-        // Hata durumunda mevcut değerleri koru
     }
 }
 

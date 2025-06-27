@@ -30,6 +30,7 @@ let database = {
     admins: [7749779502],
     vpnScripts: {
         darktunnel: {
+            id: 'darktunnel',
             name: 'DarkTunnel',
             description: 'Gelişmiş tünel teknolojisi ile güvenli bağlantı',
             content: `# DarkTunnel VPN Configuration
@@ -68,9 +69,13 @@ DOMAIN-SUFFIX,netflix.com,Proxy
 GEOIP,CN,DIRECT
 FINAL,DIRECT`,
             filename: 'darktunnel.conf',
-            enabled: true
+            enabled: true,
+            downloads: 0,
+            createdAt: new Date(),
+            updatedAt: new Date()
         },
         httpcustom: {
+            id: 'httpcustom',
             name: 'HTTP Custom',
             description: 'HTTP/HTTPS protokolü ile özelleştirilebilir bağlantı',
             content: `# HTTP Custom Configuration
@@ -109,7 +114,10 @@ DOMAIN-SUFFIX,netflix.com,Proxy
 GEOIP,CN,DIRECT
 FINAL,DIRECT`,
             filename: 'httpcustom.conf',
-            enabled: true
+            enabled: true,
+            downloads: 0,
+            createdAt: new Date(),
+            updatedAt: new Date()
         }
     }
 };
@@ -120,36 +128,71 @@ function isAdmin(chatId) {
 }
 
 // İstatistikleri güncelle
-function updateStats(scriptType) {
+function updateStats(scriptId) {
     database.stats.totalDownloads++;
-    if (scriptType === 'darktunnel') {
-        database.stats.darktunnelDownloads++;
-    } else if (scriptType === 'httpcustom') {
-        database.stats.httpcustomDownloads++;
+    if (database.vpnScripts[scriptId]) {
+        database.vpnScripts[scriptId].downloads++;
     }
     database.stats.lastUpdated = new Date();
+}
+
+// Script listesini güncelle
+function updateScriptStats() {
+    database.stats.scriptCount = Object.keys(database.vpnScripts).length;
+    database.stats.activeScripts = Object.values(database.vpnScripts).filter(s => s.enabled).length;
 }
 
 // API Routes
 app.get('/api/stats', (req, res) => {
     // Aktif kullanıcı sayısını güncelle
     database.stats.activeUsers = Object.keys(database.users).length;
-    
-    // Toplam kullanıcı sayısı - unique user ID sayısı
-    database.stats.totalUsers = Object.keys(database.users).length;
+    updateScriptStats();
     
     res.json(database.stats);
 });
 
 app.get('/api/scripts', (req, res) => {
-    res.json(database.vpnScripts);
+    // Sadece aktif scriptleri döndür
+    const activeScripts = {};
+    Object.entries(database.vpnScripts).forEach(([id, script]) => {
+        if (script.enabled) {
+            activeScripts[id] = {
+                id: script.id,
+                name: script.name,
+                description: script.description,
+                filename: script.filename,
+                downloads: script.downloads || 0
+            };
+        }
+    });
+    res.json(activeScripts);
+});
+
+app.get('/api/scripts/:id', (req, res) => {
+    const scriptId = req.params.id;
+    const script = database.vpnScripts[scriptId];
+    
+    if (script && script.enabled) {
+        res.json({
+            success: true,
+            script: {
+                id: script.id,
+                name: script.name,
+                description: script.description,
+                content: script.content,
+                filename: script.filename
+            }
+        });
+    } else {
+        res.status(404).json({ success: false, error: 'Script bulunamadı veya devre dışı' });
+    }
 });
 
 app.post('/api/download', (req, res) => {
-    const { scriptType, userId } = req.body;
+    const { scriptId, userId } = req.body;
     
-    if (database.vpnScripts[scriptType] && database.vpnScripts[scriptType].enabled) {
-        updateStats(scriptType);
+    if (database.vpnScripts[scriptId] && database.vpnScripts[scriptId].enabled) {
+        updateStats(scriptId);
         
         // Kullanıcı istatistiklerini güncelle
         if (!database.users[userId]) {
@@ -158,9 +201,16 @@ app.post('/api/download', (req, res) => {
         database.users[userId].downloads++;
         database.users[userId].lastDownload = new Date();
         
+        const script = database.vpnScripts[scriptId];
         res.json({
             success: true,
-            script: database.vpnScripts[scriptType],
+            script: {
+                id: script.id,
+                name: script.name,
+                description: script.description,
+                content: script.content,
+                filename: script.filename
+            },
             stats: database.stats
         });
     } else {
@@ -169,6 +219,16 @@ app.post('/api/download', (req, res) => {
 });
 
 // Yönetici API'leri
+app.get('/api/admin/scripts', (req, res) => {
+    const { adminId } = req.query;
+    
+    if (!isAdmin(parseInt(adminId))) {
+        return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
+    }
+    
+    res.json({ success: true, scripts: database.vpnScripts });
+});
+
 app.post('/api/admin/add-script', (req, res) => {
     const { adminId, scriptData } = req.body;
     
@@ -177,48 +237,97 @@ app.post('/api/admin/add-script', (req, res) => {
     }
     
     const { id, name, description, content, filename } = scriptData;
+    
+    if (database.vpnScripts[id]) {
+        return res.status(400).json({ success: false, error: 'Bu ID zaten kullanılıyor' });
+    }
+    
     database.vpnScripts[id] = {
+        id,
         name,
         description,
         content,
         filename,
-        enabled: true
+        enabled: true,
+        downloads: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
     };
     
-    res.json({ success: true, message: 'Script başarıyla eklendi' });
+    updateScriptStats();
+    
+    res.json({ success: true, message: 'Script başarıyla eklendi', script: database.vpnScripts[id] });
 });
 
-app.post('/api/admin/update-script', (req, res) => {
-    const { adminId, scriptId, updates } = req.body;
+app.put('/api/admin/update-script/:id', (req, res) => {
+    const { adminId } = req.body;
+    const scriptId = req.params.id;
+    const updates = req.body;
     
     if (!isAdmin(adminId)) {
         return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
     }
     
-    if (database.vpnScripts[scriptId]) {
-        database.vpnScripts[scriptId] = { ...database.vpnScripts[scriptId], ...updates };
-        res.json({ success: true, message: 'Script başarıyla güncellendi' });
-    } else {
-        res.status(404).json({ success: false, error: 'Script bulunamadı' });
+    if (!database.vpnScripts[scriptId]) {
+        return res.status(404).json({ success: false, error: 'Script bulunamadı' });
     }
+    
+    // Güncellenebilir alanlar
+    const allowedFields = ['name', 'description', 'content', 'filename'];
+    allowedFields.forEach(field => {
+        if (updates[field] !== undefined) {
+            database.vpnScripts[scriptId][field] = updates[field];
+        }
+    });
+    
+    database.vpnScripts[scriptId].updatedAt = new Date();
+    
+    res.json({ success: true, message: 'Script başarıyla güncellendi', script: database.vpnScripts[scriptId] });
 });
 
-app.post('/api/admin/toggle-script', (req, res) => {
-    const { adminId, scriptId } = req.body;
+app.delete('/api/admin/delete-script/:id', (req, res) => {
+    const { adminId } = req.body;
+    const scriptId = req.params.id;
     
     if (!isAdmin(adminId)) {
         return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
     }
     
-    if (database.vpnScripts[scriptId]) {
-        database.vpnScripts[scriptId].enabled = !database.vpnScripts[scriptId].enabled;
-        res.json({ 
-            success: true, 
-            message: `Script ${database.vpnScripts[scriptId].enabled ? 'etkinleştirildi' : 'devre dışı bırakıldı'}` 
-        });
-    } else {
-        res.status(404).json({ success: false, error: 'Script bulunamadı' });
+    if (!database.vpnScripts[scriptId]) {
+        return res.status(404).json({ success: false, error: 'Script bulunamadı' });
     }
+    
+    const scriptName = database.vpnScripts[scriptId].name;
+    delete database.vpnScripts[scriptId];
+    
+    updateScriptStats();
+    
+    res.json({ success: true, message: `Script "${scriptName}" başarıyla silindi` });
+});
+
+app.post('/api/admin/toggle-script/:id', (req, res) => {
+    const { adminId } = req.body;
+    const scriptId = req.params.id;
+    
+    if (!isAdmin(adminId)) {
+        return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
+    }
+    
+    if (!database.vpnScripts[scriptId]) {
+        return res.status(404).json({ success: false, error: 'Script bulunamadı' });
+    }
+    
+    database.vpnScripts[scriptId].enabled = !database.vpnScripts[scriptId].enabled;
+    database.vpnScripts[scriptId].updatedAt = new Date();
+    
+    updateScriptStats();
+    
+    const status = database.vpnScripts[scriptId].enabled ? 'etkinleştirildi' : 'devre dışı bırakıldı';
+    res.json({ 
+        success: true, 
+        message: `Script ${status}`,
+        script: database.vpnScripts[scriptId]
+    });
 });
 
 app.get('/api/admin/users', (req, res) => {
@@ -240,12 +349,15 @@ bot.onText(/\/start/, (msg) => {
 Bu bot ile güvenli VPN script dosyalarını reklam izleyerek elde edebilirsiniz.
 
 **Mevcut Scriptler:**
-• DarkTunnel - Gelişmiş tünel teknolojisi
-• HTTP Custom - Özelleştirilebilir HTTP bağlantı
+${Object.values(database.vpnScripts)
+    .filter(script => script.enabled)
+    .map(script => `• ${script.name} - ${script.description}`)
+    .join('\n')}
 
 **İstatistikler:**
 📥 Toplam İndirme: ${database.stats.totalDownloads}
 👥 Toplam Kullanıcı: ${Object.keys(database.users).length}
+📊 Aktif Script: ${Object.values(database.vpnScripts).filter(s => s.enabled).length}
 
 ${isAdmin(chatId) ? '\n🔧 **Yönetici Komutları:**\n/admin - Yönetici paneli\n/stats - Detaylı istatistikler' : ''}
 `;
@@ -277,13 +389,12 @@ ${isAdmin(chatId) ? '\n🔧 **Yönetici Komutları:**\n/admin - Yönetici paneli
 bot.onText(/\/admin/, (msg) => {
     const chatId = msg.chat.id;
     
-    console.log(`Admin komutu çağrıldı. Chat ID: ${chatId}`);
-    console.log(`Admin listesi: ${database.admins}`);
-    console.log(`Admin mi?: ${isAdmin(chatId)}`);
-    
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
     }
+    
+    const activeScripts = Object.values(database.vpnScripts).filter(s => s.enabled);
+    const inactiveScripts = Object.values(database.vpnScripts).filter(s => !s.enabled);
     
     const adminMessage = `
 🔧 **Yönetici Paneli**
@@ -306,7 +417,9 @@ bot.onText(/\/admin/, (msg) => {
 **Hızlı İstatistikler:**
 📥 Toplam İndirme: ${database.stats.totalDownloads}
 👥 Toplam Kullanıcı: ${Object.keys(database.users).length}
-📊 Script Sayısı: ${Object.keys(database.vpnScripts).length}
+📊 Toplam Script: ${Object.keys(database.vpnScripts).length}
+✅ Aktif Script: ${activeScripts.length}
+❌ Pasif Script: ${inactiveScripts.length}
     `;
     
     bot.sendMessage(chatId, adminMessage, { parse_mode: 'Markdown' });
@@ -328,9 +441,13 @@ bot.onText(/\/listscripts/, (msg) => {
     let scriptList = '📝 **Mevcut Scriptler:**\n\n';
     scripts.forEach(([id, script]) => {
         const status = script.enabled ? '✅' : '❌';
+        const downloads = script.downloads || 0;
+        const createdAt = script.createdAt ? new Date(script.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+        
         scriptList += `${status} **${id}** - ${script.name}\n`;
         scriptList += `📄 ${script.filename}\n`;
-        scriptList += `📊 İndirme: ${script.downloads || 0}\n\n`;
+        scriptList += `📊 İndirme: ${downloads}\n`;
+        scriptList += `📅 Oluşturulma: ${createdAt}\n\n`;
     });
     
     bot.sendMessage(chatId, scriptList, { parse_mode: 'Markdown' });
@@ -353,6 +470,8 @@ bot.on('message', (msg) => {
         handleNameEditing(msg, state);
     } else if (state.action === 'editing_file') {
         handleFileEditing(msg, state);
+    } else if (state.action === 'editing_description') {
+        handleDescriptionEditing(msg, state);
     } else if (state.action === 'editing_content') {
         handleContentEditing(msg, state);
     }
@@ -391,18 +510,21 @@ function handleScriptAdding(msg, state) {
     } else if (state.step === 'content') {
         // Script'i kaydet
         database.vpnScripts[state.scriptId] = {
+            id: state.scriptId,
             name: state.name,
             description: state.description,
             content: text,
             filename: state.filename,
             enabled: true,
             downloads: 0,
-            createdAt: new Date()
+            createdAt: new Date(),
+            updatedAt: new Date()
         };
         
+        updateScriptStats();
         delete database.adminStates[chatId];
         
-        bot.sendMessage(chatId, `✅ Script **${state.scriptId}** başarıyla eklendi!`, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, `✅ Script **${state.scriptId}** başarıyla eklendi!\n\n📝 İsim: ${state.name}\n📄 Dosya: ${state.filename}\n📋 Açıklama: ${state.description}`, { parse_mode: 'Markdown' });
     }
 }
 
@@ -412,6 +534,7 @@ function handleNameEditing(msg, state) {
     const text = msg.text;
     
     database.vpnScripts[state.scriptId].name = text;
+    database.vpnScripts[state.scriptId].updatedAt = new Date();
     delete database.adminStates[chatId];
     
     bot.sendMessage(chatId, `✅ Script ismi **${text}** olarak güncellendi!`, { parse_mode: 'Markdown' });
@@ -423,9 +546,22 @@ function handleFileEditing(msg, state) {
     const text = msg.text;
     
     database.vpnScripts[state.scriptId].filename = text;
+    database.vpnScripts[state.scriptId].updatedAt = new Date();
     delete database.adminStates[chatId];
     
     bot.sendMessage(chatId, `✅ Dosya adı **${text}** olarak güncellendi!`, { parse_mode: 'Markdown' });
+}
+
+// Açıklama düzenleme işlemi
+function handleDescriptionEditing(msg, state) {
+    const chatId = msg.chat.id;
+    const text = msg.text;
+    
+    database.vpnScripts[state.scriptId].description = text;
+    database.vpnScripts[state.scriptId].updatedAt = new Date();
+    delete database.adminStates[chatId];
+    
+    bot.sendMessage(chatId, `✅ Script açıklaması **${text}** olarak güncellendi!`, { parse_mode: 'Markdown' });
 }
 
 // İçerik düzenleme işlemi
@@ -434,6 +570,7 @@ function handleContentEditing(msg, state) {
     const text = msg.text;
     
     database.vpnScripts[state.scriptId].content = text;
+    database.vpnScripts[state.scriptId].updatedAt = new Date();
     delete database.adminStates[chatId];
     
     bot.sendMessage(chatId, `✅ Script içeriği güncellendi!`, { parse_mode: 'Markdown' });
@@ -445,21 +582,32 @@ bot.on('callback_query', (query) => {
     const data = query.data;
     
     if (data === 'stats') {
+        const activeScripts = Object.values(database.vpnScripts).filter(s => s.enabled);
+        const inactiveScripts = Object.values(database.vpnScripts).filter(s => !s.enabled);
+        
         const statsMessage = `
 📊 **VPN Script Hub İstatistikleri**
 
-📥 **Toplam İndirmeler:**
-• Genel: ${database.stats.totalDownloads}
-• Script Sayısı: ${Object.keys(database.vpnScripts).length}
+📥 **Genel İstatistikler:**
+• Toplam İndirme: ${database.stats.totalDownloads}
+• Toplam Kullanıcı: ${Object.keys(database.users).length}
+• Toplam Script: ${Object.keys(database.vpnScripts).length}
+• Aktif Script: ${activeScripts.length}
+• Pasif Script: ${inactiveScripts.length}
 
-👥 **Kullanıcılar:**
-• Toplam: ${Object.keys(database.users).length}
-• Aktif: ${Object.keys(database.users).length}
+📈 **Script Bazında İndirmeler:**
+${Object.entries(database.vpnScripts)
+    .sort((a, b) => (b[1].downloads || 0) - (a[1].downloads || 0))
+    .map(([id, script]) => 
+        `• ${script.name} (${id}): ${script.downloads || 0} indirme ${script.enabled ? '✅' : '❌'}`
+    ).join('\n')}
 
-📈 **Script Bazında:**
-${Object.entries(database.vpnScripts).map(([id, script]) => 
-    `• ${script.name}: ${script.downloads || 0} indirme`
-).join('\n')}
+👥 **Son 5 Kullanıcı:**
+${Object.entries(database.users)
+    .sort((a, b) => new Date(b[1].lastDownload || 0) - new Date(a[1].lastDownload || 0))
+    .slice(0, 5)
+    .map(([userId, user]) => `• ID: ${userId} - ${user.downloads} indirme`)
+    .join('\n')}
         `;
         
         bot.sendMessage(chatId, statsMessage, {
@@ -505,9 +653,12 @@ ${Object.entries(database.vpnScripts).map(([id, script]) =>
         
         if (database.vpnScripts[scriptId]) {
             const scriptName = database.vpnScripts[scriptId].name;
-            delete database.vpnScripts[scriptId];
+            const downloads = database.vpnScripts[scriptId].downloads || 0;
             
-            bot.editMessageText(`✅ Script **${scriptName}** (${scriptId}) silindi.`, {
+            delete database.vpnScripts[scriptId];
+            updateScriptStats();
+            
+            bot.editMessageText(`✅ Script **${scriptName}** (${scriptId}) silindi.\n\n📊 ${downloads} indirme kaydı da silindi.`, {
                 chat_id: chatId,
                 message_id: query.message.message_id,
                 parse_mode: 'Markdown'
@@ -533,7 +684,8 @@ bot.on('web_app_data', (msg) => {
     console.log('Web App data received:', data);
     
     if (data.action === 'download') {
-        updateStats(data.script);
+        const scriptId = data.script;
+        updateStats(scriptId);
         
         // Kullanıcı istatistiklerini güncelle
         if (!database.users[chatId]) {
@@ -542,10 +694,11 @@ bot.on('web_app_data', (msg) => {
         database.users[chatId].downloads++;
         database.users[chatId].lastDownload = new Date();
         
+        const script = database.vpnScripts[scriptId];
         const thankYouMessage = `
 ✅ **Script başarıyla indirildi!**
 
-📁 Script: ${data.script === 'darktunnel' ? 'DarkTunnel' : 'HTTP Custom'}
+📁 Script: ${script ? script.name : scriptId}
 ⏰ Tarih: ${new Date(data.timestamp).toLocaleString('tr-TR')}
 
 💡 **Kurulum İpuçları:**
@@ -577,16 +730,16 @@ bot.onText(/\/addscript/, (msg) => {
     const message = `
 📝 **Yeni Script Ekleme**
 
-Lütfen script ID'sini gönderin (örn: wireguard, openvpn):
+Lütfen script ID'sini gönderin (örn: wireguard, openvpn, shadowsocks):
 `;
     
     bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
 });
 
 // Script düzenleme komutu
-bot.onText(/\/editscript (.+)/, (msg, match) => {
+bot.onText(/\/editscript\s+(.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1];
+    const scriptId = match[1].trim();
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -604,11 +757,13 @@ bot.onText(/\/editscript (.+)/, (msg, match) => {
 • İsim: ${script.name}
 • Dosya: ${script.filename}
 • Durum: ${script.enabled ? '✅ Aktif' : '❌ Pasif'}
+• İndirme: ${script.downloads || 0}
 
 **Düzenleme Seçenekleri:**
 • /editname ${scriptId} - İsim değiştir
 • /editfile ${scriptId} - Dosya adı değiştir
 • /editcontent ${scriptId} - İçerik değiştir
+• /editdesc ${scriptId} - Açıklama değiştir
 • /togglescript ${scriptId} - Durum değiştir
 `;
     
@@ -616,9 +771,9 @@ bot.onText(/\/editscript (.+)/, (msg, match) => {
 });
 
 // Script silme komutu
-bot.onText(/\/deletescript (.+)/, (msg, match) => {
+bot.onText(/\/deletescript\s+(.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1];
+    const scriptId = match[1].trim();
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -647,6 +802,7 @@ bot.onText(/\/deletescript (.+)/, (msg, match) => {
 
 **Script:** ${script.name} (${scriptId})
 **Dosya:** ${script.filename}
+**İndirme:** ${script.downloads || 0}
 
 ⚠️ Bu işlem geri alınamaz!
 `;
@@ -658,9 +814,9 @@ bot.onText(/\/deletescript (.+)/, (msg, match) => {
 });
 
 // Script durum değiştirme komutu
-bot.onText(/\/togglescript (.+)/, (msg, match) => {
+bot.onText(/\/togglescript\s+(.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1];
+    const scriptId = match[1].trim();
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -671,15 +827,19 @@ bot.onText(/\/togglescript (.+)/, (msg, match) => {
     }
     
     database.vpnScripts[scriptId].enabled = !database.vpnScripts[scriptId].enabled;
+    database.vpnScripts[scriptId].updatedAt = new Date();
+    
+    updateScriptStats();
+    
     const status = database.vpnScripts[scriptId].enabled ? '✅ etkinleştirildi' : '❌ devre dışı bırakıldı';
     
     bot.sendMessage(chatId, `🔄 Script **${scriptId}** ${status}.`, { parse_mode: 'Markdown' });
 });
 
 // İsim düzenleme komutu
-bot.onText(/\/editname (.+)/, (msg, match) => {
+bot.onText(/\/editname\s+(.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1];
+    const scriptId = match[1].trim();
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -696,9 +856,9 @@ bot.onText(/\/editname (.+)/, (msg, match) => {
 });
 
 // Dosya adı düzenleme komutu
-bot.onText(/\/editfile (.+)/, (msg, match) => {
+bot.onText(/\/editfile\s+(.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1];
+    const scriptId = match[1].trim();
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -714,10 +874,29 @@ bot.onText(/\/editfile (.+)/, (msg, match) => {
     bot.sendMessage(chatId, `✏️ **${scriptId}** scriptinin yeni dosya adını gönderin:`);
 });
 
-// İçerik düzenleme komutu
-bot.onText(/\/editcontent (.+)/, (msg, match) => {
+// Açıklama düzenleme komutu
+bot.onText(/\/editdesc\s+(.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1];
+    const scriptId = match[1].trim();
+    
+    if (!isAdmin(chatId)) {
+        return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
+    }
+    
+    if (!database.vpnScripts[scriptId]) {
+        return bot.sendMessage(chatId, '❌ Script bulunamadı.');
+    }
+    
+    if (!database.adminStates) database.adminStates = {};
+    database.adminStates[chatId] = { action: 'editing_description', scriptId: scriptId };
+    
+    bot.sendMessage(chatId, `✏️ **${scriptId}** scriptinin yeni açıklamasını gönderin:`);
+});
+
+// İçerik düzenleme komutu
+bot.onText(/\/editcontent\s+(.+)/, (msg, match) => {
+    const chatId = msg.chat.id;
+    const scriptId = match[1].trim();
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -740,26 +919,41 @@ bot.onText(/\/stats/, (msg) => {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
     }
     
+    const activeScripts = Object.values(database.vpnScripts).filter(s => s.enabled);
+    const inactiveScripts = Object.values(database.vpnScripts).filter(s => !s.enabled);
+    
     const statsMessage = `
 📊 **Detaylı İstatistikler**
 
 **Genel:**
 • Toplam İndirme: ${database.stats.totalDownloads}
 • Aktif Kullanıcı: ${Object.keys(database.users).length}
-• Script Sayısı: ${Object.keys(database.vpnScripts).length}
+• Toplam Script: ${Object.keys(database.vpnScripts).length}
+• Aktif Script: ${activeScripts.length}
+• Pasif Script: ${inactiveScripts.length}
 • Son Güncelleme: ${database.stats.lastUpdated.toLocaleString('tr-TR')}
 
-**Script Bazında:**
-${Object.entries(database.vpnScripts).map(([id, script]) => 
-    `• ${script.name} (${id}): ${script.downloads || 0} indirme - ${script.enabled ? '✅' : '❌'}`
-).join('\n')}
+**Script Bazında (İndirme Sırasına Göre):**
+${Object.entries(database.vpnScripts)
+    .sort((a, b) => (b[1].downloads || 0) - (a[1].downloads || 0))
+    .map(([id, script]) => {
+        const status = script.enabled ? '✅' : '❌';
+        const createdAt = script.createdAt ? new Date(script.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+        const updatedAt = script.updatedAt ? new Date(script.updatedAt).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+        
+        return `• ${script.name} (${id}): ${script.downloads || 0} indirme ${status}\n  📅 Oluşturulma: ${createdAt}\n  📝 Güncelleme: ${updatedAt}`;
+    }).join('\n\n')}
 
 **Son 10 Kullanıcı:**
 ${Object.entries(database.users)
-    .sort((a, b) => new Date(b[1].lastDownload) - new Date(a[1].lastDownload))
+    .sort((a, b) => new Date(b[1].lastDownload || 0) - new Date(a[1].lastDownload || 0))
     .slice(0, 10)
-    .map(([userId, user]) => `• ID: ${userId} - ${user.downloads} indirme`)
-    .join('\n')}
+    .map(([userId, user]) => {
+        const firstSeen = user.firstSeen ? new Date(user.firstSeen).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+        const lastDownload = user.lastDownload ? new Date(user.lastDownload).toLocaleDateString('tr-TR') : 'Hiç indirme yok';
+        
+        return `• ID: ${userId} - ${user.downloads} indirme\n  📅 İlk görülme: ${firstSeen}\n  📥 Son indirme: ${lastDownload}`;
+    }).join('\n\n')}
     `;
     
     bot.sendMessage(chatId, statsMessage, { parse_mode: 'Markdown' });

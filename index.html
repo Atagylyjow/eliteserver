@@ -47,8 +47,8 @@
                             <span class="stat-label">Aktif Kullanıcı</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-number" id="total-users">890</span>
-                            <span class="stat-label">Toplam Kullanıcı</span>
+                            <span class="stat-number" id="script-count">2</span>
+                            <span class="stat-label">Aktif Script</span>
                         </div>
                     </div>
                 </div>
@@ -57,49 +57,11 @@
             <!-- VPN Scripts Section -->
             <section class="scripts-section">
                 <h2>VPN Scriptleri</h2>
-                <div class="scripts-grid">
-                    <!-- DarkTunnel Script -->
-                    <div class="script-card" data-script="darktunnel">
-                        <div class="script-icon">
-                            <i class="fas fa-tunnel"></i>
-                        </div>
-                        <div class="script-info">
-                            <h3>DarkTunnel</h3>
-                            <p>Gelişmiş tünel teknolojisi ile güvenli bağlantı</p>
-                            <div class="script-features">
-                                <span class="feature-tag">Hızlı</span>
-                                <span class="feature-tag">Güvenli</span>
-                                <span class="feature-tag">Kararlı</span>
-                            </div>
-                        </div>
-                        <div class="script-action">
-                            <button class="btn btn-primary unlock-btn" data-script="darktunnel">
-                                <i class="fas fa-play"></i>
-                                Reklam İzle & İndir
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- HTTP Custom Script -->
-                    <div class="script-card" data-script="httpcustom">
-                        <div class="script-icon">
-                            <i class="fas fa-globe"></i>
-                        </div>
-                        <div class="script-info">
-                            <h3>HTTP Custom</h3>
-                            <p>HTTP/HTTPS protokolü ile özelleştirilebilir bağlantı</p>
-                            <div class="script-features">
-                                <span class="feature-tag">Özelleştirilebilir</span>
-                                <span class="feature-tag">Çoklu Protokol</span>
-                                <span class="feature-tag">Kolay Kurulum</span>
-                            </div>
-                        </div>
-                        <div class="script-action">
-                            <button class="btn btn-primary unlock-btn" data-script="httpcustom">
-                                <i class="fas fa-play"></i>
-                                Reklam İzle & İndir
-                            </button>
-                        </div>
+                <div class="scripts-grid" id="scripts-container">
+                    <!-- Scripts will be loaded dynamically from backend -->
+                    <div class="loading-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Scriptler yükleniyor...</p>
                     </div>
                 </div>
             </section>
