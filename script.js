@@ -259,7 +259,7 @@ let activeUsers = Math.floor(Math.random() * 100) + 50; // 50-150 arası rastgel
 const vpnScripts = {
     darktunnel: {
         name: 'DarkTunnel',
-        description: 'Gelişmiş tünel teknolojisi ile güvenli bağlantı sağlar. Yüksek hız ve kararlılık sunar.',
+        description: 'Gelişmiş tünel teknolojisi ile güvenli bağlantı',
         content: `# DarkTunnel VPN Configuration
 # Server: premium.darktunnel.com
 # Port: 443
@@ -299,7 +299,7 @@ FINAL,DIRECT`,
     },
     httpcustom: {
         name: 'HTTP Custom',
-        description: 'HTTP/HTTPS protokolü ile özelleştirilebilir bağlantı. Çoklu protokol desteği.',
+        description: 'HTTP/HTTPS protokolü ile özelleştirilebilir bağlantı',
         content: `# HTTP Custom Configuration
 # Server: http-custom.example.com
 # Port: 80
