@@ -1,6 +1,3 @@
-// Backend API URL'si
-const API_BASE_URL = 'http://localhost:3000/api';
-
 // Telegram Web App Integration
 let tg = null;
 
@@ -37,61 +34,46 @@ function initializeTelegramWebApp() {
     loadStats();
     
     // Show main content
-    document.querySelector('.app-container').style.display = 'block';
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+        appContainer.style.display = 'block';
+        console.log('✅ App container görünür hale getirildi');
+    } else {
+        console.error('❌ App container bulunamadı');
+    }
 }
 
 // Load real-time stats from backend
 async function loadStats() {
     try {
-        const response = await fetch(`${API_BASE_URL}/stats`);
-        const stats = await response.json();
+        // Backend yoksa varsayılan değerleri kullan
+        console.log('📊 İstatistikler yükleniyor...');
         
-        // Update UI with real stats
-        document.getElementById('total-downloads').textContent = stats.totalDownloads.toLocaleString();
-        document.getElementById('active-users').textContent = stats.activeUsers.toLocaleString();
+        // Varsayılan değerleri ayarla
+        document.getElementById('total-downloads').textContent = downloadCount.toLocaleString();
+        document.getElementById('active-users').textContent = activeUsers.toLocaleString();
         
-        // Update download counts
-        downloadCount = stats.totalDownloads;
-        activeUsers = stats.activeUsers;
+        console.log('✅ İstatistikler yüklendi');
         
     } catch (error) {
         console.error('Stats yüklenirken hata:', error);
         // Fallback to local stats
+        document.getElementById('total-downloads').textContent = downloadCount.toLocaleString();
+        document.getElementById('active-users').textContent = activeUsers.toLocaleString();
     }
 }
 
-// Send data to backend
-async function sendDataToBackend(data) {
-    try {
-        const userId = tg.initDataUnsafe?.user?.id || 'unknown';
-        
-        const response = await fetch(`${API_BASE_URL}/download`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                scriptType: data.script,
-                userId: userId,
-                timestamp: Date.now()
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Update local stats
-            downloadCount = result.stats.totalDownloads;
-            document.getElementById('total-downloads').textContent = downloadCount.toLocaleString();
-            
-            // Send data to Telegram bot
-            sendDataToBot(data);
+// Send data to Telegram bot
+function sendDataToBot(data) {
+    if (tg && tg.sendData) {
+        try {
+            tg.sendData(JSON.stringify(data));
+            console.log('✅ Veri Telegram bot\'a gönderildi:', data);
+        } catch (error) {
+            console.error('❌ Telegram bot\'a veri gönderilemedi:', error);
         }
-        
-    } catch (error) {
-        console.error('Backend\'e veri gönderirken hata:', error);
-        // Fallback to Telegram only
-        sendDataToBot(data);
+    } else {
+        console.log('ℹ️ Telegram bot bağlantısı yok, veri gönderilmedi');
     }
 }
 
@@ -464,7 +446,7 @@ function downloadScript(script) {
     hideDownloadModal();
     
     // Send data to backend
-    sendDataToBackend({
+    sendDataToBot({
         script: currentScript,
         timestamp: Date.now()
     });
@@ -640,21 +622,6 @@ if (tg) {
     // Set main button if needed
     // tg.MainButton.setText('Ana Menü');
     // tg.MainButton.show();
-}
-
-// Send data to Telegram bot
-function sendDataToBot(data) {
-    if (tg && tg.initData) {
-        // Add initData for authentication
-        data.initData = tg.initData;
-        data.timestamp = Date.now();
-        
-        console.log('Sending data to bot:', data);
-        tg.sendData(JSON.stringify(data));
-    } else {
-        console.error('Telegram WebApp not available or no initData');
-        showNotification('Telegram WebApp bağlantısı bulunamadı', 'error');
-    }
 }
 
 console.log('VPN Script Hub loaded successfully!'); 
