@@ -312,6 +312,22 @@ const downloadScriptDesc = document.getElementById('download-script-desc');
 const totalDownloadsElement = document.getElementById('total-downloads');
 const activeUsersElement = document.getElementById('active-users');
 
+// Debug DOM elements
+console.log('🔍 DOM Elementleri kontrol ediliyor...');
+console.log('🎨 Theme toggle:', !!themeToggle);
+console.log('📺 Ad modal:', !!adModal);
+console.log('📥 Download modal:', !!downloadModal);
+console.log('❌ Modal close:', !!modalClose);
+console.log('❌ Download modal close:', !!downloadModalClose);
+console.log('📊 Progress fill:', !!progressFill);
+console.log('⏰ Timer:', !!timer);
+console.log('⬇️ Download btn:', !!downloadBtn);
+console.log('📋 Copy btn:', !!copyBtn);
+console.log('📝 Download script name:', !!downloadScriptName);
+console.log('📄 Download script desc:', !!downloadScriptDesc);
+console.log('📈 Total downloads:', !!totalDownloadsElement);
+console.log('👥 Active users:', !!activeUsersElement);
+
 // Theme Toggle
 themeToggle.addEventListener('click', () => {
     const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -343,17 +359,39 @@ if (savedTheme) {
 
 // Unlock buttons
 document.querySelectorAll('.unlock-btn').forEach(btn => {
+    console.log('🔗 Unlock button bulundu:', btn);
     btn.addEventListener('click', (e) => {
-        const scriptType = e.target.closest('.script-card').dataset.script;
-        currentScript = scriptType;
-        showAdModal();
+        console.log('🎯 Unlock button tıklandı!');
+        const scriptCard = e.target.closest('.script-card');
+        console.log('📋 Script card:', scriptCard);
+        
+        if (scriptCard) {
+            const scriptType = scriptCard.dataset.script;
+            console.log('📝 Script type:', scriptType);
+            currentScript = scriptType;
+            console.log('🎬 Reklam modalı açılıyor...');
+            showAdModal();
+        } else {
+            console.error('❌ Script card bulunamadı!');
+        }
     });
 });
 
 // Show Ad Modal
 function showAdModal() {
-    adModal.classList.add('show');
-    startAdTimer();
+    console.log('🎬 showAdModal çağrıldı');
+    console.log('📺 Ad modal elementi:', adModal);
+    
+    if (adModal) {
+        adModal.classList.add('show');
+        console.log('✅ Ad modal show class eklendi');
+        startAdTimer();
+    } else {
+        console.error('❌ Ad modal elementi bulunamadı!');
+        // Fallback: direkt AdsGram reklamını göster
+        console.log('🔄 Fallback: Direkt AdsGram reklamı gösteriliyor...');
+        showAdsGramAd();
+    }
 }
 
 // Start Ad Timer
