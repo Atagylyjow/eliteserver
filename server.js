@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Bot token'ınızı buraya yazın
-const token = '7762459827:AAFI_AgWtOcsFYT4bzG-i9TIwGGb6VwZJls';
+const token = '7762459827:AAFFQRGpSphgUqw2MHhMngCMQeBHZLHrHCo';
 
 // Bot oluştur
 const bot = new TelegramBot(token, { polling: true });
@@ -737,9 +737,9 @@ Lütfen script ID'sini gönderin (örn: wireguard, openvpn, shadowsocks):
 });
 
 // Script düzenleme komutu
-bot.onText(/\/editscript\s+(.+)/, (msg, match) => {
+bot.onText(/\/editscript (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1].trim();
+    const scriptId = match[1];
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -771,9 +771,9 @@ bot.onText(/\/editscript\s+(.+)/, (msg, match) => {
 });
 
 // Script silme komutu
-bot.onText(/\/deletescript\s+(.+)/, (msg, match) => {
+bot.onText(/\/deletescript (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1].trim();
+    const scriptId = match[1];
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -814,9 +814,9 @@ bot.onText(/\/deletescript\s+(.+)/, (msg, match) => {
 });
 
 // Script durum değiştirme komutu
-bot.onText(/\/togglescript\s+(.+)/, (msg, match) => {
+bot.onText(/\/togglescript (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1].trim();
+    const scriptId = match[1];
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -837,9 +837,9 @@ bot.onText(/\/togglescript\s+(.+)/, (msg, match) => {
 });
 
 // İsim düzenleme komutu
-bot.onText(/\/editname\s+(.+)/, (msg, match) => {
+bot.onText(/\/editname (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1].trim();
+    const scriptId = match[1];
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -856,9 +856,9 @@ bot.onText(/\/editname\s+(.+)/, (msg, match) => {
 });
 
 // Dosya adı düzenleme komutu
-bot.onText(/\/editfile\s+(.+)/, (msg, match) => {
+bot.onText(/\/editfile (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1].trim();
+    const scriptId = match[1];
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -875,9 +875,9 @@ bot.onText(/\/editfile\s+(.+)/, (msg, match) => {
 });
 
 // Açıklama düzenleme komutu
-bot.onText(/\/editdesc\s+(.+)/, (msg, match) => {
+bot.onText(/\/editdesc (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1].trim();
+    const scriptId = match[1];
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');
@@ -894,9 +894,9 @@ bot.onText(/\/editdesc\s+(.+)/, (msg, match) => {
 });
 
 // İçerik düzenleme komutu
-bot.onText(/\/editcontent\s+(.+)/, (msg, match) => {
+bot.onText(/\/editcontent (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    const scriptId = match[1].trim();
+    const scriptId = match[1];
     
     if (!isAdmin(chatId)) {
         return bot.sendMessage(chatId, '❌ Bu komutu kullanma yetkiniz yok.');

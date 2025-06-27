@@ -22,10 +22,10 @@ function initializeTelegramWebApp() {
             tg = window.Telegram.WebApp;
             console.log('📱 Telegram WebApp objesi:', tg);
             
-            tg.ready();
+    tg.ready();
             console.log('✅ tg.ready() çağrıldı');
             
-            tg.expand();
+    tg.expand();
             console.log('✅ tg.expand() çağrıldı');
             
             // Set theme
@@ -172,65 +172,17 @@ function updateScriptsUI() {
 function createScriptCard(script) {
     const card = document.createElement('div');
     card.className = 'script-card';
-    card.dataset.script = script.id;
-    
-    // Script icon'u belirle
-    let icon = 'fas fa-shield-alt'; // varsayılan
-    if (script.id.includes('tunnel') || script.id.includes('dark')) {
-        icon = 'fas fa-tunnel';
-    } else if (script.id.includes('http') || script.id.includes('custom')) {
-        icon = 'fas fa-globe';
-    } else if (script.id.includes('wireguard')) {
-        icon = 'fas fa-network-wired';
-    } else if (script.id.includes('openvpn')) {
-        icon = 'fas fa-vpn';
-    }
-    
-    // Feature tag'leri oluştur
-    const features = [];
-    if (script.description.includes('hızlı') || script.description.includes('fast')) {
-        features.push('Hızlı');
-    }
-    if (script.description.includes('güvenli') || script.description.includes('secure')) {
-        features.push('Güvenli');
-    }
-    if (script.description.includes('kararlı') || script.description.includes('stable')) {
-        features.push('Kararlı');
-    }
-    if (script.description.includes('özelleştirilebilir') || script.description.includes('customizable')) {
-        features.push('Özelleştirilebilir');
-    }
-    if (script.description.includes('protokol') || script.description.includes('protocol')) {
-        features.push('Çoklu Protokol');
-    }
-    if (script.description.includes('kolay') || script.description.includes('easy')) {
-        features.push('Kolay Kurulum');
-    }
-    
-    // Varsayılan feature'lar
-    if (features.length === 0) {
-        features.push('Hızlı', 'Güvenli', 'Kararlı');
-    }
-    
-    const featureTags = features.map(feature => 
-        `<span class="feature-tag">${feature}</span>`
-    ).join('');
-    
     card.innerHTML = `
-        <div class="script-icon">
-            <i class="${icon}"></i>
-        </div>
-        <div class="script-info">
+        <div class="script-header">
             <h3>${script.name}</h3>
-            <p>${script.description}</p>
-            <div class="script-features">
-                ${featureTags}
-            </div>
+            <span class="download-count">${script.downloads || 0} indirme</span>
         </div>
-        <div class="script-action">
-            <button class="btn btn-primary unlock-btn" data-script="${script.id}">
-                <i class="fas fa-play"></i>
-                Reklam İzle & İndir
+        <p class="script-description">${script.description}</p>
+        <div class="script-footer">
+            <span class="filename">📄 ${script.filename}</span>
+            <button class="download-btn" onclick="downloadScript('${script.id}')">
+                <i class="fas fa-download"></i>
+                İndir
             </button>
         </div>
     `;
@@ -506,38 +458,51 @@ console.log('📄 Download script desc:', !!downloadScriptDesc);
 console.log('📈 Total downloads:', !!totalDownloadsElement);
 console.log('👥 Active users:', !!activeUsersElement);
 
-// Event Listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Theme toggle
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            
-            const icon = themeToggle.querySelector('i');
-            icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        });
-    }
+// Theme Toggle
+themeToggle.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     
-    // Unlock button event delegation (for dynamically created elements)
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.unlock-btn')) {
-            e.preventDefault();
-            console.log('🎯 Unlock button tıklandı!');
-            const scriptCard = e.target.closest('.script-card');
-            console.log('📋 Script card:', scriptCard);
-            
-            if (scriptCard) {
-                const scriptId = scriptCard.dataset.script;
-                console.log('📝 Script ID:', scriptId);
-                currentScript = scriptId;
-                console.log('🎬 Reklam modalı açılıyor...');
-                showAdModal();
-            } else {
-                console.error('❌ Script card bulunamadı!');
-            }
+    document.documentElement.setAttribute('data-theme', newTheme);
+    
+    // Update icon
+    const icon = themeToggle.querySelector('i');
+    icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    
+    // Save theme preference
+    localStorage.setItem('theme', newTheme);
+    
+    // Update Telegram Web App theme
+    if (tg) {
+        tg.setHeaderColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
+        tg.setBackgroundColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
+    }
+});
+
+// Load saved theme
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme) {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const icon = themeToggle.querySelector('i');
+    icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+// Unlock buttons
+document.querySelectorAll('.unlock-btn').forEach(btn => {
+    console.log('🔗 Unlock button bulundu:', btn);
+    btn.addEventListener('click', (e) => {
+        console.log('🎯 Unlock button tıklandı!');
+        const scriptCard = e.target.closest('.script-card');
+        console.log('📋 Script card:', scriptCard);
+        
+        if (scriptCard) {
+            const scriptType = scriptCard.dataset.script;
+            console.log('📝 Script type:', scriptType);
+        currentScript = scriptType;
+            console.log('🎬 Reklam modalı açılıyor...');
+        showAdModal();
+        } else {
+            console.error('❌ Script card bulunamadı!');
         }
     });
 });
@@ -581,13 +546,7 @@ async function showAdsGramAd() {
 
 // Show Download Modal
 function showDownloadModal() {
-    if (!currentScript || !scripts[currentScript]) {
-        console.error('❌ Script bilgisi bulunamadı!');
-        showNotification('❌ Script bilgisi bulunamadı', 'error');
-        return;
-    }
-    
-    const script = scripts[currentScript];
+    const script = vpnScripts[currentScript];
     downloadScriptName.textContent = script.name;
     downloadScriptDesc.textContent = script.description;
     downloadModal.classList.add('show');
@@ -617,12 +576,8 @@ downloadModal.addEventListener('click', (e) => {
 
 // Download Button
 downloadBtn.addEventListener('click', () => {
-    if (currentScript) {
-        downloadScript(currentScript);
-    } else {
-        console.error('❌ Current script bulunamadı!');
-        showNotification('❌ Script bilgisi bulunamadı', 'error');
-    }
+    const script = vpnScripts[currentScript];
+    downloadScript(script.id);
 });
 
 // Download Script Function
@@ -642,16 +597,16 @@ async function downloadScript(scriptId) {
         console.log('📋 Script verisi alındı:', script);
         
         // Dosyayı indir
-        const blob = new Blob([script.content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = script.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
+    const blob = new Blob([script.content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = script.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
         // Backend'e indirme verisi gönder
         const userId = tg?.initDataUnsafe?.user?.id || 'unknown';
         
@@ -675,8 +630,8 @@ async function downloadScript(scriptId) {
             await loadStats();
             await loadScripts();
         }
-        
-        // Show success message
+    
+    // Show success message
         showNotification(`${script.name} başarıyla indirildi!`, 'success');
         
         // Send data to Telegram bot
