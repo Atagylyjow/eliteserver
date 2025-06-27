@@ -134,37 +134,66 @@ let AdController = null;
 // Initialize AdsGram SDK
 function initializeAdsGram() {
     try {
+        console.log('🔧 AdsGram SDK başlatılıyor...');
+        console.log('📋 Block ID:', 'int-12280');
+        
         // 🔥 BURAYA KENDİ BLOCK ID'NİZİ YAZIN 🔥
         // Örnek: "abc123def456" (tırnak işaretleri olmadan)
         AdController = window.Adsgram.init({ 
             blockId: "int-12280" 
         });
-        console.log('AdsGram SDK başlatıldı');
+        
+        console.log('✅ AdsGram SDK başarıyla başlatıldı');
+        console.log('🎮 AdController:', AdController);
+        
     } catch (error) {
-        console.error('AdsGram SDK başlatılamadı:', error);
+        console.error('❌ AdsGram SDK başlatılamadı:', error);
+        console.error('🔍 Hata detayları:', {
+            message: error.message,
+            stack: error.stack,
+            windowAdsgram: !!window.Adsgram
+        });
     }
 }
 
 // Reklam gösterme fonksiyonu
 async function showAd() {
+    console.log('🎬 Reklam gösterme başlatılıyor...');
+    
     if (!AdController) {
-        console.error('AdsGram Controller bulunamadı');
+        console.error('❌ AdsGram Controller bulunamadı');
+        console.error('🔍 AdController durumu:', AdController);
         return false;
     }
     
+    console.log('✅ AdController bulundu, reklam gösteriliyor...');
+    
     try {
+        console.log('📺 Reklam yükleniyor...');
         const result = await AdController.show();
-        console.log('Reklam sonucu:', result);
+        
+        console.log('📊 Reklam sonucu:', result);
+        console.log('📈 Reklam durumu:', {
+            done: result.done,
+            description: result.description,
+            state: result.state,
+            error: result.error
+        });
         
         if (result.done) {
-            // Kullanıcı reklamı tamamladı
+            console.log('✅ Kullanıcı reklamı tamamladı');
             return true;
         } else {
-            // Kullanıcı reklamı tamamlamadı
+            console.log('❌ Kullanıcı reklamı tamamlamadı');
             return false;
         }
     } catch (error) {
-        console.error('Reklam gösterme hatası:', error);
+        console.error('❌ Reklam gösterme hatası:', error);
+        console.error('🔍 Hata detayları:', {
+            message: error.message,
+            stack: error.stack,
+            type: error.constructor.name
+        });
         return false;
     }
 }
