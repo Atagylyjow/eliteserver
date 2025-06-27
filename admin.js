@@ -191,12 +191,20 @@ function hideModal(modalId) {
 document.getElementById('add-script-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
+    const filename = document.getElementById('script-filename').value;
+    
+    // Dosya uzantısı kontrolü
+    if (!filename.includes('.') || filename.endsWith('.txt')) {
+        showNotification('❌ Geçersiz dosya adı! Lütfen uzantılı bir dosya adı girin (örn: script.conf, script.json, script.yaml)', 'error');
+        return;
+    }
+    
     const scriptData = {
         id: document.getElementById('script-id').value,
         name: document.getElementById('script-name').value,
         description: document.getElementById('script-description').value,
         content: document.getElementById('script-content').value,
-        filename: document.getElementById('script-filename').value
+        filename: filename
     };
     
     try {
@@ -233,11 +241,19 @@ document.getElementById('edit-script-form').addEventListener('submit', async fun
     e.preventDefault();
     
     const scriptId = document.getElementById('edit-script-id').value;
+    const filename = document.getElementById('edit-script-filename').value;
+    
+    // Dosya uzantısı kontrolü
+    if (!filename.includes('.') || filename.endsWith('.txt')) {
+        showNotification('❌ Geçersiz dosya adı! Lütfen uzantılı bir dosya adı girin (örn: script.conf, script.json, script.yaml)', 'error');
+        return;
+    }
+    
     const updates = {
         name: document.getElementById('edit-script-name').value,
         description: document.getElementById('edit-script-description').value,
         content: document.getElementById('edit-script-content').value,
-        filename: document.getElementById('edit-script-filename').value
+        filename: filename
     };
     
     try {

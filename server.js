@@ -495,9 +495,15 @@ function handleScriptAdding(msg, state) {
     } else if (state.step === 'name') {
         state.name = text;
         state.step = 'filename';
-        bot.sendMessage(chatId, '📄 Dosya adını gönderin (herhangi bir uzantı kabul edilir, örn: script.conf, script.txt, script.json):');
+        bot.sendMessage(chatId, '📄 Dosya adını gönderin (uzantılı olmalı, örn: script.conf, script.json, script.yaml):');
         
     } else if (state.step === 'filename') {
+        // Dosya uzantısı kontrolü
+        if (!text.includes('.') || text.endsWith('.txt')) {
+            bot.sendMessage(chatId, '❌ Geçersiz dosya adı! Lütfen uzantılı bir dosya adı girin (örn: script.conf, script.json, script.yaml):');
+            return;
+        }
+        
         state.filename = text;
         state.step = 'description';
         bot.sendMessage(chatId, '📋 Script açıklamasını gönderin:');

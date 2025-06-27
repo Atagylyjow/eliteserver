@@ -172,6 +172,7 @@ function updateScriptsUI() {
 function createScriptCard(script) {
     const card = document.createElement('div');
     card.className = 'script-card';
+    card.dataset.script = script.id;
     card.innerHTML = `
         <div class="script-header">
             <h3>${script.name}</h3>
@@ -180,12 +181,31 @@ function createScriptCard(script) {
         <p class="script-description">${script.description}</p>
         <div class="script-footer">
             <span class="filename">📄 ${script.filename}</span>
-            <button class="download-btn" onclick="downloadScript('${script.id}')">
-                <i class="fas fa-download"></i>
-                İndir
+            <button class="btn btn-primary unlock-btn" data-script="${script.id}">
+                <i class="fas fa-play"></i>
+                Reklam İzle & İndir
             </button>
         </div>
     `;
+    
+    // Add event listener for unlock button
+    const unlockBtn = card.querySelector('.unlock-btn');
+    unlockBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('🎯 Unlock button tıklandı!');
+        const scriptCard = e.target.closest('.script-card');
+        console.log('📋 Script card:', scriptCard);
+        
+        if (scriptCard) {
+            const scriptId = scriptCard.dataset.script;
+            console.log('📝 Script ID:', scriptId);
+            currentScript = scriptId;
+            console.log('🎬 Reklam modalı açılıyor...');
+            showAdModal();
+        } else {
+            console.error('❌ Script card bulunamadı!');
+        }
+    });
     
     return card;
 }
@@ -487,26 +507,6 @@ if (savedTheme) {
     icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
-// Unlock buttons
-document.querySelectorAll('.unlock-btn').forEach(btn => {
-    console.log('🔗 Unlock button bulundu:', btn);
-    btn.addEventListener('click', (e) => {
-        console.log('🎯 Unlock button tıklandı!');
-        const scriptCard = e.target.closest('.script-card');
-        console.log('📋 Script card:', scriptCard);
-        
-        if (scriptCard) {
-            const scriptType = scriptCard.dataset.script;
-            console.log('📝 Script type:', scriptType);
-        currentScript = scriptType;
-            console.log('🎬 Reklam modalı açılıyor...');
-        showAdModal();
-        } else {
-            console.error('❌ Script card bulunamadı!');
-        }
-    });
-});
-
 // Show Ad Modal
 function showAdModal() {
     console.log('🎬 showAdModal çağrıldı');
@@ -546,9 +546,14 @@ async function showAdsGramAd() {
 
 // Show Download Modal
 function showDownloadModal() {
-    const script = vpnScripts[currentScript];
-    downloadScriptName.textContent = script.name;
-    downloadScriptDesc.textContent = script.description;
+    const script = scripts[currentScript];
+    if (script) {
+        downloadScriptName.textContent = script.name;
+        downloadScriptDesc.textContent = script.description;
+    } else {
+        downloadScriptName.textContent = 'Script';
+        downloadScriptDesc.textContent = 'Script açıklaması';
+    }
     downloadModal.classList.add('show');
 }
 
@@ -576,8 +581,13 @@ downloadModal.addEventListener('click', (e) => {
 
 // Download Button
 downloadBtn.addEventListener('click', () => {
-    const script = vpnScripts[currentScript];
-    downloadScript(script.id);
+    if (currentScript) {
+        downloadScript(currentScript);
+        hideDownloadModal();
+    } else {
+        console.error('❌ Current script bulunamadı!');
+        showNotification('❌ Script bulunamadı!', 'error');
+    }
 });
 
 // Download Script Function
@@ -596,17 +606,17 @@ async function downloadScript(scriptId) {
         
         console.log('📋 Script verisi alındı:', script);
         
-        // Dosyayı indir
-    const blob = new Blob([script.content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = script.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
+        // Dosyayı indir - orijinal dosya adını kullan
+        const blob = new Blob([script.content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = script.filename; // Orijinal dosya adını kullan
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
         // Backend'e indirme verisi gönder
         const userId = tg?.initDataUnsafe?.user?.id || 'unknown';
         
@@ -630,8 +640,8 @@ async function downloadScript(scriptId) {
             await loadStats();
             await loadScripts();
         }
-    
-    // Show success message
+        
+        // Show success message
         showNotification(`${script.name} başarıyla indirildi!`, 'success');
         
         // Send data to Telegram bot
