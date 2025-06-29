@@ -235,23 +235,15 @@ if (coinModalClose) {
 if (watchAdBtn) {
     watchAdBtn.addEventListener('click', async () => {
         watchAdBtn.disabled = true;
-        watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
+        watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Coin Ekleniyor...';
         
         try {
-            // Ensure userId is set before showing ad
+            // Ensure userId is set
             if (!userId) {
                 userId = getUserId();
             }
             
-            // Check if Monetag SDK is loaded
-            if (typeof window.show_9499819 !== 'function') {
-                throw new Error('Monetag SDK yüklenmedi');
-            }
-            
-            // Show Rewarded Popup ad
-            await showRewardedPopupAd();
-            
-            // Add 1 coin after successful ad view
+            // Directly add 1 coin without waiting for ad
             await addCoins(1);
             
             // Close modal
@@ -260,8 +252,8 @@ if (watchAdBtn) {
             }
             
         } catch (error) {
-            console.error('❌ Reklam izleme hatası:', error);
-            showNotification('❌ Reklam izlenemedi: ' + error.message, 'error');
+            console.error('❌ Coin ekleme hatası:', error);
+            showNotification('❌ Coin eklenemedi: ' + error.message, 'error');
         } finally {
             watchAdBtn.disabled = false;
             watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
@@ -325,6 +317,8 @@ async function downloadScript(scriptName) {
             return;
         }
 
+        console.log('📡 Backend\'e indirme isteği gönderiliyor...');
+        
         // Backend'e indirme isteği gönder
         const response = await fetch(`${API_BASE_URL}/download/${scriptName}`, {
             method: 'POST',
@@ -336,6 +330,8 @@ async function downloadScript(scriptName) {
             })
         });
 
+        console.log('📥 Backend yanıtı:', response.status, response.statusText);
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({
                 message: 'Bilinmeyen sunucu hatası'
@@ -344,8 +340,11 @@ async function downloadScript(scriptName) {
         }
 
         const data = await response.json();
+        console.log('📄 Backend verisi:', data);
 
         if (data.url) {
+            console.log('🔗 İndirme URL\'si alındı:', data.url);
+            
             // Tarayıcıda indirme başlat
             const link = document.createElement('a');
             link.href = data.url;
@@ -355,6 +354,7 @@ async function downloadScript(scriptName) {
             document.body.removeChild(link);
             
             showNotification(`✅ '${scriptName}' başarıyla indirildi!`, 'success');
+            console.log('✅ İndirme tamamlandı');
         } else {
             throw new Error('İndirme URL\'si alınamadı.');
         }
@@ -551,5 +551,58 @@ if (tg) {
 
 // Load user coins on startup
 loadUserCoins();
+
+// Add event listeners for download buttons
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 DOM yüklendi, buton event listener\'ları ekleniyor...');
+    
+    // Add click handlers for all download buttons
+    const buttons = document.querySelectorAll('.unlock-btn');
+    console.log('🔍 Bulunan buton sayısı:', buttons.length);
+    
+    buttons.forEach((btn, index) => {
+        const scriptName = btn.getAttribute('data-script');
+        console.log(`🔗 Buton ${index + 1}:`, scriptName);
+        
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('🖱️ Buton tıklandı:', scriptName);
+            
+            if (scriptName) {
+                downloadScript(scriptName);
+            } else {
+                console.error('❌ Script adı bulunamadı');
+            }
+        });
+    });
+});
+
+// Also add handlers after a delay in case elements load later
+setTimeout(() => {
+    console.log('⏰ Gecikmeli buton event listener\'ları ekleniyor...');
+    
+    const buttons = document.querySelectorAll('.unlock-btn');
+    console.log('🔍 Gecikmeli bulunan buton sayısı:', buttons.length);
+    
+    buttons.forEach((btn, index) => {
+        const scriptName = btn.getAttribute('data-script');
+        console.log(`🔗 Gecikmeli buton ${index + 1}:`, scriptName);
+        
+        // Remove existing listeners to avoid duplicates
+        btn.replaceWith(btn.cloneNode(true));
+        const newBtn = document.querySelectorAll('.unlock-btn')[index];
+        
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('🖱️ Gecikmeli buton tıklandı:', scriptName);
+            
+            if (scriptName) {
+                downloadScript(scriptName);
+            } else {
+                console.error('❌ Script adı bulunamadı');
+            }
+        });
+    });
+}, 1000);
 
 console.log('VPN Script Hub loaded successfully!'); 

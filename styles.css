@@ -220,15 +220,15 @@ body {
 /* Coin Earning Modal Styles */
 .coin-earning-info {
     text-align: center;
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
 }
 
 .coin-earning-icon {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .coin-earning-icon i {
-    font-size: 4rem;
+    font-size: 3rem;
     color: #ffd700;
     background: linear-gradient(45deg, #ffd700, #ffed4e);
     -webkit-background-clip: text;
@@ -237,17 +237,17 @@ body {
 }
 
 .coin-earning-info h4 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
     color: var(--text-primary);
 }
 
 .coin-earning-info p {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: var(--text-secondary);
-    margin-bottom: 2rem;
-    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
 }
 
 .coin-reward {
@@ -255,21 +255,21 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    margin-bottom: 2rem;
-    padding: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem;
     background: var(--bg-secondary);
-    border-radius: 15px;
+    border-radius: 12px;
     border: 2px solid #ffd700;
 }
 
 .reward-amount {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: #ffd700;
 }
 
 .coin-reward i {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     color: #ffd700;
 }
 
@@ -277,9 +277,9 @@ body {
     background: var(--accent-secondary);
     color: white;
     border: none;
-    padding: 1rem 2rem;
-    border-radius: 12px;
-    font-size: 1.1rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
