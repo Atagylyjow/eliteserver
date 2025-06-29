@@ -101,55 +101,48 @@ function sendDataToBot(data) {
     }
 }
 
-// Initialize when DOM is loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeTelegramWebApp);
-} else {
-    initializeTelegramWebApp();
-}
-
-// Also try to initialize after a short delay (in case Telegram WebApp loads later)
-setTimeout(initializeTelegramWebApp, 1000);
-
-// UI Elements
-const themeToggle = document.getElementById('theme-toggle');
-const coinModal = document.getElementById('coin-modal');
-const coinModalClose = document.getElementById('coin-modal-close');
-const addCoinsBtn = document.getElementById('add-coins-btn');
-const watchAdBtn = document.getElementById('watch-ad-btn');
-const userCoinsElement = document.getElementById('user-coins');
-
 // State
 let currentScript = null;
 let userCoins = 0;
 let userId = null;
 
-// Get user ID
+// Get user ID after Telegram WebApp is ready
 function getUserId() {
-    if (tg?.initDataUnsafe?.user?.id) {
-        return tg.initDataUnsafe.user.id.toString();
+    if (userId) return userId; // Return cached ID if available
+    
+    const tg = window.Telegram?.WebApp;
+    if (tg && tg.initDataUnsafe?.user?.id) {
+        userId = tg.initDataUnsafe.user.id.toString();
+        console.log('✅ Telegram User ID alındı:', userId);
+        return userId;
     }
+    
+    console.warn('⚠️ Telegram User ID alınamadı, "anonymous" kullanılacak.');
     return 'anonymous';
 }
 
 // Load user coins
 async function loadUserCoins() {
     try {
-        userId = getUserId();
-        console.log('👤 User ID:', userId);
+        const currentUserId = getUserId();
+        if (currentUserId === 'anonymous') {
+            console.log('Kullanıcı kimliği henüz hazır değil, coin yükleme erteleniyor.');
+            return;
+        }
         
-        const response = await fetch(`${API_BASE_URL}/user/${userId}/coins`);
+        console.log(`💰 ${currentUserId} için coinler yükleniyor...`);
+        const response = await fetch(`${API_BASE_URL}/user/${currentUserId}/coins`);
         
         if (response.ok) {
             const data = await response.json();
             userCoins = data.coins;
             updateCoinDisplay();
-            console.log('✅ Coin yüklendi:', userCoins);
+            console.log('✅ Coinler yüklendi:', userCoins);
         } else {
-            console.error('❌ Coin yükleme hatası:', response.status);
+            console.error(`❌ Coin yükleme hatası: ${response.status}`);
         }
     } catch (error) {
-        console.error('❌ Coin yüklenirken hata:', error);
+        console.error('❌ Coin yüklenirken bir istisna oluştu:', error);
     }
 }
 
@@ -218,42 +211,41 @@ if (themeToggle) {
 // Coin modal event listeners
 if (addCoinsBtn) {
     addCoinsBtn.addEventListener('click', () => {
-        if (coinModal) {
-            coinModal.style.display = 'block';
-        }
+        if (coinModal) coinModal.style.display = 'block';
     });
 }
 
 if (coinModalClose) {
     coinModalClose.addEventListener('click', () => {
-        if (coinModal) {
-            coinModal.style.display = 'none';
-        }
+        if (coinModal) coinModal.style.display = 'none';
     });
 }
 
 if (watchAdBtn) {
     watchAdBtn.addEventListener('click', async () => {
         watchAdBtn.disabled = true;
-        watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Coin Ekleniyor...';
+        watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
         
         try {
-            // Ensure userId is set
+            // Ensure userId is set before showing the ad
             if (!userId) {
                 userId = getUserId();
             }
             
-            // Directly add 1 coin without waiting for ad
+            // Show the Rewarded Popup ad
+            await showRewardedPopupAd();
+            
+            // If the ad was shown successfully, add 1 coin
             await addCoins(1);
             
-            // Close modal
+            // Close the modal
             if (coinModal) {
                 coinModal.style.display = 'none';
             }
             
         } catch (error) {
-            console.error('❌ Coin ekleme hatası:', error);
-            showNotification('❌ Coin eklenemedi: ' + error.message, 'error');
+            console.error('❌ Reklam izleme hatası:', error);
+            showNotification(`❌ Reklam hatası: ${error.message}`, 'error');
         } finally {
             watchAdBtn.disabled = false;
             watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
@@ -264,23 +256,23 @@ if (watchAdBtn) {
 // Show Monetag Rewarded Popup Ad
 function showRewardedPopupAd() {
     return new Promise((resolve, reject) => {
-        // Get user ID for tracking
-        const ymid = getUserId();
+        // Check if Monetag SDK is loaded
+        if (typeof window.show_9499819 !== 'function') {
+            return reject(new Error('Monetag SDK yüklenemedi. Lütfen sayfayı yenileyin.'));
+        }
         
+        const ymid = getUserId();
         console.log('🎬 Monetag Rewarded Popup reklamı gösteriliyor...', { ymid });
         
-        // Show the rewarded popup ad
-        window.show_9499819({ 
-            type: 'pop',
-            ymid: ymid,
-            requestVar: 'coin-earning'
-        }).then(() => {
-            console.log('✅ Rewarded Popup reklamı başarıyla tamamlandı');
-            resolve();
-        }).catch((error) => {
-            console.error('❌ Rewarded Popup reklamı hatası:', error);
-            reject(new Error('Reklam gösterilemedi'));
-        });
+        window.show_9499819({ type: 'pop', ymid: ymid, requestVar: 'coin-earning' })
+            .then(() => {
+                console.log('✅ Rewarded Popup reklamı başarıyla tetiklendi.');
+                resolve();
+            })
+            .catch((error) => {
+                console.error('❌ Rewarded Popup reklamı hatası:', error);
+                reject(new Error('Reklam gösterilemedi veya engellendi.'));
+            });
     });
 }
 
@@ -543,25 +535,57 @@ if (tg) {
     tg.enableClosingConfirmation();
 }
 
-// Load user coins on startup
-loadUserCoins();
-
-// Add event listeners for download buttons
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔧 DOM yüklendi, buton event listener\'ları ekleniyor...');
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait for Telegram WebApp to be fully ready
+    window.Telegram.WebApp.ready();
     
-    // Use event delegation for dynamically added elements
+    // Initialize our application
+    initializeTelegramWebApp();
+    
+    // Now that the app is ready, get the user ID and load coins
+    userId = getUserId();
+    loadUserCoins();
+    
+    // Set up button listeners
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // ... (themeToggle, coinModal, watchAdBtn listener'ları buraya gelecek)
+    // ... (indirme butonları için event delegation)
+    console.log('🔧 Event listener\'lar kuruldu.');
+    
+    // Coin modal event listeners
+    if (addCoinsBtn) {
+        addCoinsBtn.addEventListener('click', () => {
+            if (coinModal) coinModal.style.display = 'block';
+        });
+    }
+
+    if (coinModalClose) {
+        coinModalClose.addEventListener('click', () => {
+            if (coinModal) coinModal.style.display = 'none';
+        });
+    }
+
+    if (watchAdBtn) {
+        watchAdBtn.addEventListener('click', async () => {
+            // ... (reklam izleme mantığı)
+        });
+    }
+    
+    // Download button listeners using event delegation
     document.body.addEventListener('click', function(e) {
         const button = e.target.closest('.unlock-btn');
         if (button) {
             e.preventDefault();
             const scriptName = button.getAttribute('data-script');
-            console.log('🖱️ Buton tıklandı:', scriptName);
             if (scriptName) {
                 downloadScript(scriptName);
             }
         }
     });
-});
+}
 
 console.log('VPN Script Hub loaded successfully!'); 
