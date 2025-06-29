@@ -3,55 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Telegram Web App - VPN Script Hub - Güvenli VPN scriptlerini reklam izleyerek elde edin">
+    <meta name="description" content="Telegram Web App - VPN Script Hub - Güvenli VPN scriptlerini edinin">
     <meta name="keywords" content="Telegram, Web App, VPN, Script, DarkTunnel, HTTP Custom">
     <meta name="author" content="Nowruz">
     <title>VPN Script Hub - Telegram Web App</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Monetag SDK -->
-    <script>
-        // Monetag SDK yükleme kontrolü
-        window.monetagLoaded = false;
-        window.monetagError = null;
-        
-        // SDK yükleme durumunu izle
-        function checkMonetagSDK() {
-            if (window.show_9499819 && typeof window.show_9499819 === 'function') {
-                console.log('✅ Monetag SDK başarıyla yüklendi');
-                window.monetagLoaded = true;
-                return true;
-            }
-            return false;
-        }
-        
-        // Sayfa yüklendiğinde kontrol et
-        window.addEventListener('load', function() {
-            console.log('📄 Sayfa yüklendi, Monetag SDK kontrol ediliyor...');
-            
-            // İlk kontrol
-            if (checkMonetagSDK()) {
-                return;
-            }
-            
-            // 3 saniye sonra tekrar kontrol et
-            setTimeout(function() {
-                if (checkMonetagSDK()) {
-                    return;
-                }
-                
-                // 5 saniye sonra son kontrol
-                setTimeout(function() {
-                    if (!checkMonetagSDK()) {
-                        console.warn('⚠️ Monetag SDK yüklenemedi');
-                        window.monetagError = 'SDK yüklenemedi';
-                    }
-                }, 2000);
-            }, 3000);
-        });
-    </script>
-    <script src='//libtl.com/sdk.js' data-zone='9499819' data-sdk='show_9499819' async defer></script>
 </head>
 <body>
     <div class="app-container">
@@ -77,7 +35,7 @@
                         <i class="fas fa-rocket"></i>
                     </div>
                     <h1>VPN Script Hub'a Hoş Geldiniz</h1>
-                    <p>Güvenli ve hızlı VPN scriptlerini reklam izleyerek elde edin</p>
+                    <p>Güvenli ve hızlı VPN scriptlerini edinin</p>
                     <div class="stats">
                         <div class="stat-item">
                             <span class="stat-number" id="total-downloads">1,234</span>
@@ -115,8 +73,8 @@
                         </div>
                         <div class="script-action">
                             <button class="btn btn-primary unlock-btn" data-script="darktunnel">
-                                <i class="fas fa-play"></i>
-                                Reklam İzle & İndir
+                                <i class="fas fa-download"></i>
+                                İndir
                             </button>
                         </div>
                     </div>
@@ -137,8 +95,8 @@
                         </div>
                         <div class="script-action">
                             <button class="btn btn-primary unlock-btn" data-script="httpcustom">
-                                <i class="fas fa-play"></i>
-                                Reklam İzle & İndir
+                                <i class="fas fa-download"></i>
+                                İndir
                             </button>
                         </div>
                     </div>
@@ -159,13 +117,6 @@
                     <div class="instruction-step">
                         <div class="step-number">2</div>
                         <div class="step-content">
-                            <h3>Reklam İzleyin</h3>
-                            <p>Kısa reklamı izleyerek scripti açın</p>
-                        </div>
-                    </div>
-                    <div class="instruction-step">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
                             <h3>İndirin</h3>
                             <p>Script dosyasını cihazınıza indirin</p>
                         </div>
@@ -173,32 +124,6 @@
                 </div>
             </section>
         </main>
-
-        <!-- Download Modal -->
-        <div class="modal" id="download-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Script İndir</h3>
-                    <button class="modal-close" id="download-modal-close">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="download-info">
-                        <div class="script-details">
-                            <h4 id="download-script-name">Script Adı</h4>
-                            <p id="download-script-desc">Script açıklaması</p>
-                        </div>
-                        <div class="download-options">
-                            <button class="btn btn-success download-btn" id="download-btn">
-                                <i class="fas fa-download"></i>
-                                İndir
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script src="script.js"></script>

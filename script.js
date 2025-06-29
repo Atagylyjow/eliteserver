@@ -46,10 +46,6 @@ function initializeTelegramWebApp() {
         document.documentElement.setAttribute('data-theme', 'light');
     }
     
-    console.log('🔧 Monetag başlatılıyor...');
-    // Initialize Monetag SDK
-    initializeMonetag();
-    
     console.log('📊 İstatistikler yükleniyor...');
     // Load initial stats
     loadStats();
@@ -190,255 +186,55 @@ setTimeout(initializeTelegramWebApp, 1000);
 // Periyodik istatistik güncellemesi
 setInterval(updateStats, 30000); // Her 30 saniyede bir güncelle
 
-// Monetag Controller
-let monetagReady = false;
-let monetagPreloaded = false;
-
-// Initialize Monetag SDK
-function initializeMonetag() {
-    try {
-        console.log('🔧 Monetag SDK başlatılıyor...');
-        console.log('📋 Zone ID:', '9499819');
-        
-        // SDK yükleme durumunu kontrol et
-        console.log('🔍 SDK yükleme durumu:', {
-            show_9499819: typeof window.show_9499819,
-            monetagLoaded: window.monetagLoaded,
-            documentReady: document.readyState
-        });
-        
-        // Telegram WebApp SDK'yı hazırla
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-            console.log('✅ Telegram WebApp SDK hazır');
-            console.log('📱 Telegram WebApp durumu:', {
-                isExpanded: window.Telegram.WebApp.isExpanded,
-                platform: window.Telegram.WebApp.platform,
-                version: window.Telegram.WebApp.version
-            });
-        } else {
-            console.log('⚠️ Telegram WebApp SDK bulunamadı, normal web modunda çalışıyor');
-        }
-        
-        // Monetag SDK'nın yüklenmesini bekle
-        const checkMonetag = setInterval(() => {
-            console.log('🔄 SDK kontrol ediliyor...', {
-                show_9499819: typeof window.show_9499819,
-                monetagLoaded: window.monetagLoaded
-            });
-            
-            if (window.show_9499819 && typeof window.show_9499819 === 'function') {
-                clearInterval(checkMonetag);
-                monetagReady = true;
-                console.log('✅ Monetag SDK başarıyla yüklendi');
-                preloadMonetagAd();
-            }
-        }, 500); // 500ms'ye çıkaralım
-        
-        // 15 saniye sonra timeout
-        setTimeout(() => {
-            if (!monetagReady) {
-                clearInterval(checkMonetag);
-                console.error('❌ Monetag SDK yüklenemedi');
-                console.error('🔍 Son durum:', {
-                    show_9499819: typeof window.show_9499819,
-                    monetagLoaded: window.monetagLoaded,
-                    windowKeys: Object.keys(window).filter(key => key.includes('show_'))
-                });
-            }
-        }, 15000);
-        
-    } catch (error) {
-        console.error('❌ Monetag SDK başlatılamadı:', error);
-    }
-}
-
-// Monetag reklamını preload et
-async function preloadMonetagAd() {
-    if (!monetagReady) {
-        console.error('❌ Monetag SDK henüz hazır değil');
-        return;
-    }
-    
-    try {
-        console.log('📦 Monetag reklamı preload ediliyor...');
-        const userId = generateUserId();
-        
-        await window.show_9499819({ 
-            type: 'preload', 
-            ymid: userId 
-        }).catch(error => {
-            console.error('❌ Preload hatası:', error);
-            throw error;
-        });
-        
-        monetagPreloaded = true;
-        console.log('✅ Monetag reklamı preload edildi');
-    } catch (error) {
-        console.error('❌ Monetag reklamı preload edilemedi:', error);
-    }
-}
-
-// Kullanıcı ID'si oluştur
-function generateUserId() {
-    // Telegram user ID varsa onu kullan
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-        return `tg_${window.Telegram.WebApp.initDataUnsafe.user.id}`;
-    }
-    
-    // Session ID kullan
-    if (!window.sessionUserId) {
-        window.sessionUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-    return window.sessionUserId;
-}
-
-// Monetag reklamını göster
-async function showMonetagAd() {
-    if (!monetagReady) {
-        console.error('❌ Monetag SDK henüz hazır değil');
-        showNotification('❌ Reklam sistemi henüz hazır değil. Lütfen sayfayı yenileyin.', 'error');
-        return false;
-    }
-    
-    try {
-        console.log('📺 Monetag reklamı gösteriliyor...');
-        const userId = generateUserId();
-        
-        // Monetag'ın önerdiği şekilde .catch() ile hata yakalama
-        const result = await window.show_9499819({ 
-            ymid: userId,
-            requestVar: currentScript // Hangi script için reklam gösterildiğini izle
-        }).catch(error => {
-            console.error('❌ Monetag reklamı hatası:', error);
-            throw error;
-        });
-        
-        console.log('✅ Monetag reklamı başarıyla tamamlandı');
-        console.log('👤 User ID:', userId);
-        console.log('📊 Reklam sonucu:', result);
-        
-        return true;
-    } catch (error) {
-        console.error('❌ Monetag reklamı gösterilemedi:', error);
-        showNotification('❌ Reklam gösterilemedi. Lütfen tekrar deneyin.', 'error');
-        return false;
-    }
-}
-
-// App State
-let currentScript = null;
-let adTimer = null;
-let downloadCount = Math.floor(Math.random() * 1000) + 500; // 500-1500 arası rastgele
-let activeUsers = Math.floor(Math.random() * 100) + 50; // 50-150 arası rastgele
-
-// VPN Script Data
-const vpnScripts = {
-    darktunnel: {
-        name: 'DarkTunnel',
-        description: 'Gelişmiş tünel teknolojisi ile güvenli bağlantı',
-        content: `# DarkTunnel VPN Configuration
-# Server: premium.darktunnel.com
-# Port: 443
-# Protocol: TLS
-
-[General]
-loglevel = notify
-interface = 127.0.0.1
-port = 1080
-socks-interface = 127.0.0.1
-socks-port = 1081
-http-interface = 127.0.0.1
-http-port = 1082
-
-[Proxy]
-Type = Shadowsocks
-Server = premium.darktunnel.com
-Port = 443
-Method = chacha20-ietf-poly1305
-Password = your_password_here
-
-[Proxy Group]
-Proxy = select, auto, fallback
-auto = url-test, server-tcp, url = http://www.gstatic.com/generate_204
-fallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204
-
-[Rule]
-DOMAIN-SUFFIX,google.com,Proxy
-DOMAIN-SUFFIX,facebook.com,Proxy
-DOMAIN-SUFFIX,twitter.com,Proxy
-DOMAIN-SUFFIX,instagram.com,Proxy
-DOMAIN-SUFFIX,youtube.com,Proxy
-DOMAIN-SUFFIX,netflix.com,Proxy
-GEOIP,CN,DIRECT
-FINAL,DIRECT`,
-        filename: 'darktunnel.conf'
-    },
-    httpcustom: {
-        name: 'HTTP Custom',
-        description: 'HTTP/HTTPS protokolü ile özelleştirilebilir bağlantı',
-        content: `# HTTP Custom Configuration
-# Server: http-custom.example.com
-# Port: 80
-# Protocol: HTTP
-
-[General]
-loglevel = notify
-interface = 127.0.0.1
-port = 1080
-socks-interface = 127.0.0.1
-socks-port = 1081
-http-interface = 127.0.0.1
-http-port = 1082
-
-[Proxy]
-Type = HTTP
-Server = http-custom.example.com
-Port = 80
-Username = your_username
-Password = your_password
-
-[Proxy Group]
-Proxy = select, auto, fallback
-auto = url-test, server-tcp, url = http://www.gstatic.com/generate_204
-fallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204
-
-[Rule]
-DOMAIN-SUFFIX,google.com,Proxy
-DOMAIN-SUFFIX,facebook.com,Proxy
-DOMAIN-SUFFIX,twitter.com,Proxy
-DOMAIN-SUFFIX,instagram.com,Proxy
-DOMAIN-SUFFIX,youtube.com,Proxy
-DOMAIN-SUFFIX,netflix.com,Proxy
-GEOIP,CN,DIRECT
-FINAL,DIRECT`,
-        filename: 'httpcustom.conf'
-    }
-};
-
-// DOM Elements
-const themeToggle = document.getElementById('theme-toggle');
-const downloadModal = document.getElementById('download-modal');
-const downloadModalClose = document.getElementById('download-modal-close');
-const downloadBtn = document.getElementById('download-btn');
-const downloadScriptName = document.getElementById('download-script-name');
-const downloadScriptDesc = document.getElementById('download-script-desc');
+// UI Elements
 const totalDownloadsElement = document.getElementById('total-downloads');
 const activeUsersElement = document.getElementById('active-users');
+const themeToggle = document.getElementById('theme-toggle');
+const scriptFilter = document.getElementById('script-filter');
+const searchInput = document.getElementById('search-input');
+const scriptList = document.getElementById('script-list');
+const downloadModal = document.getElementById('download-modal');
+const closeModal = document.querySelector('.close-button');
+const finalDownloadButton = document.getElementById('final-download-button');
+const adCountdown = document.getElementById('ad-countdown');
+const adContainer = document.getElementById('ad-container');
 
-// Debug DOM elements
-console.log('🔍 DOM Elementleri kontrol ediliyor...');
-console.log('🎨 Theme toggle:', !!themeToggle);
-console.log('📥 Download modal:', !!downloadModal);
-console.log('❌ Download modal close:', !!downloadModalClose);
-console.log('⬇️ Download btn:', !!downloadBtn);
-console.log('📝 Download script name:', !!downloadScriptName);
-console.log('📄 Download script desc:', !!downloadScriptDesc);
-console.log('📈 Total downloads:', !!totalDownloadsElement);
-console.log('👥 Active users:', !!activeUsersElement);
+// State
+let scripts = [];
+let downloadCount = 1783;
+let activeUsers = 234;
+let currentScript = null;
 
-// Theme Toggle
-themeToggle.addEventListener('click', () => {
+// Event Listeners
+if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        
+        // Update icon
+        themeToggle.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        
+        // Save theme preference
+        localStorage.setItem('theme', newTheme);
+        
+        // Update Telegram Web App theme
+        if (tg) {
+            tg.setHeaderColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
+            tg.setBackgroundColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
+        }
+    });
+}
+
+if (event.target == downloadModal) {
+    hideDownloadModal();
+}
+
+// Functions
+
+// Toggle dark/light mode
+function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     
@@ -455,150 +251,76 @@ themeToggle.addEventListener('click', () => {
         tg.setHeaderColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
         tg.setBackgroundColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
     }
-});
-
-// Load saved theme
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme) {
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    themeToggle.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
-// Unlock buttons
-document.querySelectorAll('.unlock-btn').forEach(btn => {
-    console.log('🔗 Unlock button bulundu:', btn);
-    btn.addEventListener('click', (e) => {
-        console.log('🎯 Unlock button tıklandı!');
-        const scriptCard = e.target.closest('.script-card');
-        console.log('📋 Script card:', scriptCard);
-        
-        if (scriptCard) {
-            const scriptType = scriptCard.dataset.script;
-            console.log('📝 Script type:', scriptType);
-            currentScript = scriptType;
-            console.log('🎬 Reklam gösteriliyor...');
-            handleMonetagAd();
-        } else {
-            console.error('❌ Script card bulunamadı!');
-        }
-    });
-});
+// Filter and search scripts
+function filterScripts() {
+    const searchValue = searchInput.value.toLowerCase();
+    const filteredScripts = scripts.filter(script =>
+        script.name.toLowerCase().includes(searchValue) ||
+        script.description.toLowerCase().includes(searchValue)
+    );
 
-// Show Monetag Ad (Modal handler)
-async function handleMonetagAd() {
-    try {
-        // Monetag reklamını göster
-        const adWatched = await showMonetagAd();
-        
-        if (adWatched) {
-            // Kullanıcı reklamı tamamladı
-            showNotification('✅ Reklam tamamlandı! Script indiriliyor...', 'success');
-            showDownloadModal();
-        } else {
-            // Kullanıcı reklamı tamamlamadı veya hata oluştu
-            showNotification('❌ Reklam tamamlanmadı. Lütfen tekrar deneyin.', 'error');
-        }
-    } catch (error) {
-        console.error('Reklam gösterme hatası:', error);
-        showNotification('❌ Reklam yüklenirken hata oluştu. Lütfen tekrar deneyin.', 'error');
-    }
+    displayScripts(filteredScripts);
 }
 
-// Show Download Modal
-function showDownloadModal() {
-    const script = vpnScripts[currentScript];
-    downloadScriptName.textContent = script.name;
-    downloadScriptDesc.textContent = script.description;
-    downloadModal.classList.add('show');
+// Show download confirmation modal
+function showDownloadModal(script) {
+    currentScript = script;
+    downloadScript(script)
 }
 
-// Hide Download Modal
+// Hide download confirmation modal
 function hideDownloadModal() {
-    downloadModal.classList.remove('show');
-}
-
-// Modal Close Events
-downloadModalClose.addEventListener('click', hideDownloadModal);
-
-// Close modals when clicking outside
-downloadModal.addEventListener('click', (e) => {
-    if (e.target === downloadModal) {
-        hideDownloadModal();
+    if (downloadModal) {
+        downloadModal.style.display = 'none';
     }
-});
-
-// Download Button
-downloadBtn.addEventListener('click', () => {
-    const script = vpnScripts[currentScript];
-    downloadScript(script);
-});
+}
 
 // Download Script Function
-async function downloadScript(script) {
-    const blob = new Blob([script.content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = script.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    // İndirme sayısını artır
-    downloadCount += 1;
-    if (totalDownloadsElement) {
-        totalDownloadsElement.textContent = downloadCount.toLocaleString();
-    }
-    
-    // Backend'e indirme verisi gönder
+async function downloadScript(scriptName) {
     try {
-        const userId = tg?.initDataUnsafe?.user?.id || 'unknown';
-        
-        const response = await fetch(`${API_BASE_URL}/download`, {
+        console.log(`🔽 '${scriptName}' scripti indiriliyor...`);
+
+        // Backend'e indirme isteği gönder
+        const response = await fetch(`${API_BASE_URL}/download/${scriptName}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                scriptType: currentScript,
-                userId: userId,
-                timestamp: Date.now()
+                userId: tg?.initDataUnsafe?.user?.id || 'anonymous'
             })
         });
-        
-        if (response.ok) {
-            const result = await response.json();
-            console.log('✅ İndirme verisi backend\'e gönderildi:', result);
-            
-            // Backend'den güncel istatistikleri al
-            await updateStats();
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({
+                message: 'Bilinmeyen sunucu hatası'
+            }));
+            throw new Error(errorData.message || `HTTP hatası! Durum: ${response.status}`);
         }
-        
+
+        const data = await response.json();
+
+        if (data.url) {
+            // Tarayıcıda indirme başlat
+            window.location.href = data.url;
+            showNotification(`✅ '${scriptName}' başarıyla indirildi!`, 'success');
+
+            // İstatistikleri güncelle
+            updateStats(true);
+        } else {
+            throw new Error('İndirme URL\'si alınamadı.');
+        }
+
     } catch (error) {
-        console.error('❌ Backend\'e indirme verisi gönderilemedi:', error);
-        console.log('🔄 Backend erişilemiyor, yerel istatistikler güncellendi');
-        
-        // Backend erişilemiyorsa yerel istatistikleri güncelle
-        console.log('✅ Yerel indirme sayısı güncellendi:', downloadCount);
+        console.error('❌ Script indirme hatası:', error);
+        showNotification(`❌ Script indirilemedi: ${error.message}`, 'error');
     }
-    
-    // Show success message
-    showNotification('Script başarıyla indirildi!', 'success');
-    
-    // Hide modal
-    hideDownloadModal();
-    
-    // Send data to Telegram bot
-    sendDataToBot({
-        script: currentScript,
-        timestamp: Date.now()
-    });
 }
 
-// Show Notification Function
+// Show notification
 function showNotification(message, type = 'info') {
-    // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
@@ -643,7 +365,7 @@ function showNotification(message, type = 'info') {
 }
 
 // Update Stats Periodically
-async function updateStats() {
+async function updateStats(isDownload = false) {
     try {
         console.log('📊 İstatistikler güncelleniyor...');
         
@@ -678,6 +400,15 @@ async function updateStats() {
             activeUsers: activeUsers,
             totalUsers: totalUsers
         });
+        
+        // If a download happened, send a message to the bot
+        if (isDownload) {
+            sendDataToBot({
+                type: 'download_success',
+                script: currentScript,
+                downloads: stats.totalDownloads
+            });
+        }
         
     } catch (error) {
         console.error('❌ İstatistikler güncellenirken hata:', error);

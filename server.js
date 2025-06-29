@@ -373,25 +373,22 @@ app.get('/api/admin/users', (req, res) => {
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     const welcomeMessage = `
-🚀 **VPN Script Hub'a Hoş Geldiniz!**
+👋 *VPN Script Hub Bot'a Hoş Geldiniz!*
 
-Bu bot ile güvenli VPN script dosyalarını reklam izleyerek elde edebilirsiniz.
+Bu bot ile güvenli VPN script dosyalarını elde edebilirsiniz.
 
-**Mevcut Scriptler:**
-• DarkTunnel - Gelişmiş tünel teknolojisi
-• HTTP Custom - Özelleştirilebilir HTTP bağlantı
+*Kullanılabilir Komutlar:*
+/help - Yardım menüsünü gösterir
+/list - Mevcut tüm VPN scriptlerini listeler
 
-**İstatistikler:**
-📥 Toplam İndirme: ${database.stats.totalDownloads}
-👥 Toplam Kullanıcı: ${Object.keys(database.users).length}
-
-${isAdmin(chatId) ? '\n🔧 **Yönetici Komutları:**\n/admin - Yönetici paneli\n/stats - Detaylı istatistikler' : ''}
+*Web Uygulaması:*
+Aşağıdaki butona tıklayarak web uygulamasına erişebilirsiniz.
 `;
 
     const keyboard = {
         inline_keyboard: [
             [{
-                text: '🚀 VPN Script Hub\'ı Aç',
+                text: '🚀 Web Uygulamasını Aç',
                 web_app: { url: `https://atagylyjow.github.io/TG-Web-App/` }
             }],
             [{
@@ -612,8 +609,7 @@ ${Object.entries(database.vpnScripts).map(([id, script]) =>
 ❓ **Script nasıl kullanılır?**
 1. Web App'i açın
 2. Script seçin
-3. Reklam izleyin
-4. İndirin ve kurun
+3. İndirin ve kurun
 
 ❓ **Hangi VPN uygulamaları desteklenir?**
 • Shadowrocket (iOS)
