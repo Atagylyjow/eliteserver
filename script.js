@@ -223,11 +223,16 @@ if (watchAdBtn) {
         watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
         
         try {
-            // Simulate ad watching (replace with actual ad integration)
-            await simulateAdWatch();
+            // Check if Monetag SDK is loaded
+            if (typeof window.show_9499819 !== 'function') {
+                throw new Error('Monetag SDK yüklenmedi');
+            }
             
-            // Add coins after successful ad watch
-            await addCoins(10);
+            // Show Rewarded Popup ad
+            await showRewardedPopupAd();
+            
+            // Add 1 coin after successful ad view
+            await addCoins(1);
             
             // Close modal
             if (coinModal) {
@@ -236,7 +241,7 @@ if (watchAdBtn) {
             
         } catch (error) {
             console.error('❌ Reklam izleme hatası:', error);
-            showNotification('❌ Reklam izlenemedi', 'error');
+            showNotification('❌ Reklam izlenemedi: ' + error.message, 'error');
         } finally {
             watchAdBtn.disabled = false;
             watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
@@ -244,34 +249,26 @@ if (watchAdBtn) {
     });
 }
 
-// Simulate ad watching
-function simulateAdWatch() {
+// Show Monetag Rewarded Popup Ad
+function showRewardedPopupAd() {
     return new Promise((resolve, reject) => {
-        let progress = 0;
-        const duration = 5000; // 5 seconds
-        const interval = 100; // Update every 100ms
+        // Get user ID for tracking
+        const ymid = getUserId();
         
-        watchAdBtn.innerHTML = `<i class="fas fa-play"></i> Reklam İzleniyor... (${Math.round(progress)}%)`;
+        console.log('🎬 Monetag Rewarded Popup reklamı gösteriliyor...', { ymid });
         
-        const timer = setInterval(() => {
-            progress += (interval / duration) * 100;
-            
-            if (progress >= 100) {
-                clearInterval(timer);
-                resolve();
-            } else {
-                watchAdBtn.innerHTML = `<i class="fas fa-play"></i> Reklam İzleniyor... (${Math.round(progress)}%)`;
-            }
-        }, interval);
-        
-        // Allow user to cancel
-        const cancelHandler = () => {
-            clearInterval(timer);
-            reject(new Error('Reklam iptal edildi'));
-        };
-        
-        // Add cancel functionality (optional)
-        // watchAdBtn.addEventListener('click', cancelHandler, { once: true });
+        // Show the rewarded popup ad
+        window.show_9499819({ 
+            type: 'pop',
+            ymid: ymid,
+            requestVar: 'coin-earning'
+        }).then(() => {
+            console.log('✅ Rewarded Popup reklamı başarıyla tamamlandı');
+            resolve();
+        }).catch((error) => {
+            console.error('❌ Rewarded Popup reklamı hatası:', error);
+            reject(new Error('Reklam gösterilemedi'));
+        });
     });
 }
 
