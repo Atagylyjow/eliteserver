@@ -181,7 +181,6 @@ setInterval(updateStats, 30000); // Her 30 saniyede bir güncelle
 // Monetag Controller
 let monetagReady = false;
 let monetagPreloaded = false;
-let fallbackMode = false;
 
 // Initialize Monetag SDK
 function initializeMonetag() {
@@ -208,32 +207,20 @@ function initializeMonetag() {
                 clearInterval(checkMonetag);
                 monetagReady = true;
                 console.log('✅ Monetag SDK başarıyla yüklendi');
-                
-                // Telegram WebApp içinde mi kontrol et
-                if (window.Telegram && window.Telegram.WebApp) {
-                    console.log('✅ Telegram WebApp içinde çalışıyor');
-                    preloadMonetagAd();
-                } else {
-                    console.log('⚠️ Normal web modunda, fallback kullanılacak');
-                    fallbackMode = true;
-                }
+                preloadMonetagAd();
             }
         }, 100);
         
-        // 5 saniye sonra timeout
+        // 10 saniye sonra timeout
         setTimeout(() => {
             if (!monetagReady) {
                 clearInterval(checkMonetag);
-                console.error('❌ Monetag SDK yüklenemedi, fallback moduna geçiliyor');
-                fallbackMode = true;
-                monetagReady = true; // Fallback için true yap
+                console.error('❌ Monetag SDK yüklenemedi');
             }
-        }, 5000);
+        }, 10000);
         
     } catch (error) {
         console.error('❌ Monetag SDK başlatılamadı:', error);
-        fallbackMode = true;
-        monetagReady = true; // Fallback için true yap
     }
 }
 
@@ -241,11 +228,6 @@ function initializeMonetag() {
 async function preloadMonetagAd() {
     if (!monetagReady) {
         console.error('❌ Monetag SDK henüz hazır değil');
-        return;
-    }
-    
-    if (fallbackMode) {
-        console.log('📦 Fallback modunda preload atlanıyor');
         return;
     }
     
@@ -259,7 +241,6 @@ async function preloadMonetagAd() {
         console.log('✅ Monetag reklamı preload edildi');
     } catch (error) {
         console.error('❌ Monetag reklamı preload edilemedi:', error);
-        fallbackMode = true;
     }
 }
 
@@ -281,13 +262,8 @@ function generateUserId() {
 async function showMonetagAd() {
     if (!monetagReady) {
         console.error('❌ Monetag SDK henüz hazır değil');
+        showNotification('❌ Reklam sistemi henüz hazır değil. Lütfen sayfayı yenileyin.', 'error');
         return false;
-    }
-    
-    // Fallback modunda sahte reklam göster
-    if (fallbackMode) {
-        console.log('📺 Fallback modunda sahte reklam gösteriliyor...');
-        return await showFallbackAd();
     }
     
     try {
@@ -304,26 +280,9 @@ async function showMonetagAd() {
         return true;
     } catch (error) {
         console.error('❌ Monetag reklamı gösterilemedi:', error);
-        console.log('🔄 Fallback moduna geçiliyor...');
-        fallbackMode = true;
-        return await showFallbackAd();
+        showNotification('❌ Reklam gösterilemedi. Lütfen tekrar deneyin.', 'error');
+        return false;
     }
-}
-
-// Fallback reklam göster (sahte reklam)
-async function showFallbackAd() {
-    return new Promise((resolve) => {
-        console.log('📺 Fallback reklamı gösteriliyor...');
-        
-        // Loading notification göster
-        showNotification('📺 Reklam yükleniyor...', 'info');
-        
-        // 3 saniye sonra otomatik olarak tamamla
-        setTimeout(() => {
-            console.log('✅ Fallback reklamı tamamlandı');
-            resolve(true);
-        }, 3000);
-    });
 }
 
 // App State
@@ -497,12 +456,12 @@ async function handleMonetagAd() {
             showNotification('✅ Reklam tamamlandı! Script indiriliyor...', 'success');
             showDownloadModal();
         } else {
-            // Kullanıcı reklamı tamamlamadı
+            // Kullanıcı reklamı tamamlamadı veya hata oluştu
             showNotification('❌ Reklam tamamlanmadı. Lütfen tekrar deneyin.', 'error');
         }
     } catch (error) {
         console.error('Reklam gösterme hatası:', error);
-        showNotification('❌ Reklam yüklenirken hata oluştu.', 'error');
+        showNotification('❌ Reklam yüklenirken hata oluştu. Lütfen tekrar deneyin.', 'error');
     }
 }
 
