@@ -528,36 +528,4 @@ if (tg) {
     // tg.MainButton.show();
 }
 
-console.log('VPN Script Hub loaded successfully!');
-
-// Test fonksiyonu - Telegram WebApp'te SDK durumunu kontrol et
-function testMonetagSDK() {
-    console.log('🧪 Monetag SDK Test Başlatılıyor...');
-    
-    const testResults = {
-        sdkLoaded: !!window.show_9499819,
-        sdkType: typeof window.show_9499819,
-        monetagLoaded: window.monetagLoaded,
-        monetagError: window.monetagError,
-        telegramWebApp: !!(window.Telegram && window.Telegram.WebApp),
-        platform: window.Telegram?.WebApp?.platform || 'unknown',
-        version: window.Telegram?.WebApp?.version || 'unknown',
-        isExpanded: window.Telegram?.WebApp?.isExpanded || false
-    };
-    
-    console.log('📊 Test Sonuçları:', testResults);
-    
-    if (testResults.sdkLoaded && testResults.sdkType === 'function') {
-        console.log('✅ SDK hazır, test reklamı gösteriliyor...');
-        showMonetagAd().then(result => {
-            console.log('🎯 Test reklamı sonucu:', result);
-        });
-    } else {
-        console.error('❌ SDK hazır değil:', testResults);
-    }
-    
-    return testResults;
-}
-
-// Global olarak erişilebilir yap
-window.testMonetagSDK = testMonetagSDK; 
+console.log('VPN Script Hub loaded successfully!'); 
