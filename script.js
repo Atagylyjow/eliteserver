@@ -537,42 +537,76 @@ if (tg) {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Wait for Telegram WebApp to be fully ready
-    window.Telegram.WebApp.ready();
+    console.log('🚀 DOMContentLoaded: Uygulama başlatılıyor...');
     
-    // Initialize our application
+    // Initialize Telegram environment first
     initializeTelegramWebApp();
     
-    // Now that the app is ready, get the user ID and load coins
-    userId = getUserId();
-    loadUserCoins();
-    
-    // Set up button listeners
-    setupEventListeners();
+    // It's crucial to wait for the WebApp to be truly ready.
+    // We can use a small timeout or a more robust check if needed.
+    setTimeout(() => {
+        console.log('⏳ Gecikmeli başlatma: ID alınıyor ve listener\'lar kuruluyor.');
+        
+        // Now that the app is initialized, get the user ID and load coins
+        userId = getUserId();
+        loadUserCoins();
+        
+        // Set up all button and element listeners
+        setupEventListeners();
+        
+        console.log('✅ Uygulama tamamen başlatıldı.');
+    }, 100); // 100ms delay to ensure Telegram WebApp is ready
 });
 
 function setupEventListeners() {
-    // ... (themeToggle, coinModal, watchAdBtn listener'ları buraya gelecek)
-    // ... (indirme butonları için event delegation)
-    console.log('🔧 Event listener\'lar kuruldu.');
+    console.log('🔧 Olay dinleyicileri (event listeners) kuruluyor...');
+    
+    const themeToggle = document.getElementById('theme-toggle');
+    const addCoinsBtn = document.getElementById('add-coins-btn');
+    const coinModal = document.getElementById('coin-modal');
+    const coinModalClose = document.querySelector('.coin-modal .modal-close');
+    const watchAdBtn = document.getElementById('watch-ad-btn');
+    
+    // Theme Toggle
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+        console.log('✅ Tema değiştirme butonu dinleyicisi kuruldu.');
+    }
     
     // Coin modal event listeners
     if (addCoinsBtn) {
         addCoinsBtn.addEventListener('click', () => {
             if (coinModal) coinModal.style.display = 'block';
         });
+        console.log('✅ Coin ekle butonu dinleyicisi kuruldu.');
     }
-
+    
     if (coinModalClose) {
         coinModalClose.addEventListener('click', () => {
             if (coinModal) coinModal.style.display = 'none';
         });
+        console.log('✅ Coin modal kapatma butonu dinleyicisi kuruldu.');
     }
-
+    
     if (watchAdBtn) {
         watchAdBtn.addEventListener('click', async () => {
-            // ... (reklam izleme mantığı)
+            watchAdBtn.disabled = true;
+            watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
+            
+            try {
+                if (!userId) userId = getUserId();
+                await showRewardedPopupAd();
+                await addCoins(1);
+                if (coinModal) coinModal.style.display = 'none';
+            } catch (error) {
+                console.error('❌ Reklam izleme hatası:', error);
+                showNotification(`❌ Reklam hatası: ${error.message}`, 'error');
+            } finally {
+                watchAdBtn.disabled = false;
+                watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
+            }
         });
+        console.log('✅ Reklam izle butonu dinleyicisi kuruldu.');
     }
     
     // Download button listeners using event delegation
@@ -586,6 +620,9 @@ function setupEventListeners() {
             }
         }
     });
+    console.log('✅ İndirme butonları için genel dinleyici kuruldu.');
+    
+    console.log('🔧 Tüm olay dinleyicileri başarıyla kuruldu.');
 }
 
 console.log('VPN Script Hub loaded successfully!'); 
