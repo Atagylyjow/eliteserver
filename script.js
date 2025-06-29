@@ -607,6 +607,9 @@ document.addEventListener('DOMContentLoaded', () => {
     userId = getUserId();
     loadUserCoins();
     
+    // Initialize In-App Interstitial ads
+    initializeInAppInterstitial();
+    
     console.log('✅ Uygulama başlatma tamamlandı');
 });
 
@@ -621,6 +624,48 @@ if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
     
     // Enable closing confirmation
     tg.enableClosingConfirmation();
+}
+
+// Initialize In-App Interstitial Ads
+function initializeInAppInterstitial() {
+    console.log('🎬 In-App Interstitial reklamları başlatılıyor...');
+    
+    // Check if Monetag SDK is loaded
+    if (typeof window.show_9499819 !== 'function') {
+        console.warn('⚠️ Monetag SDK henüz yüklenmedi, In-App Interstitial erteleniyor...');
+        // Retry after a short delay
+        setTimeout(initializeInAppInterstitial, 2000);
+        return;
+    }
+    
+    try {
+        // Get user ID for tracking
+        const ymid = getUserId();
+        
+        // Initialize In-App Interstitial with our settings
+        window.show_9499819({
+            type: 'inApp',
+            ymid: ymid,
+            inAppSettings: {
+                frequency: 10,        // Maximum 10 ads per session
+                capping: 0.5,         // Session duration: 30 minutes (0.5 hours)
+                interval: 180,        // 3 minutes (180 seconds) between ads
+                timeout: 10,          // 10 seconds delay before first ad
+                everyPage: false      // Session continues across page reloads
+            }
+        });
+        
+        console.log('✅ In-App Interstitial başarıyla başlatıldı');
+        console.log('📊 Reklam ayarları:', {
+            frequency: 10,
+            capping: '30 dakika',
+            interval: '3 dakika',
+            timeout: '10 saniye'
+        });
+        
+    } catch (error) {
+        console.error('❌ In-App Interstitial başlatılırken hata:', error);
+    }
 }
 
 console.log('VPN Script Hub loaded successfully!'); 
