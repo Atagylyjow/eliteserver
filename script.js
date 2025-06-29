@@ -1,5 +1,7 @@
-// Backend API URL'si
-const API_BASE_URL = 'http://localhost:3000/api';
+// Backend API URL'si - Dinamik olarak belirlenir
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:3000/api' 
+    : `${window.location.protocol}//${window.location.hostname}:3000/api`;
 
 // Cache busting - Force reload updated script
 // Version: 1.0.1 - Fixed themeToggle errors
@@ -383,45 +385,40 @@ async function downloadScript(scriptName) {
             return;
         }
 
+        // Deduct coins first
+        await deductCoins(price);
+
+        // Download the script
         const response = await fetch(`${API_BASE_URL}/download/${scriptName}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: currentUserId })
+            method: 'GET'
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Sunucu hatası' }));
-            throw new Error(errorData.message || `HTTP ${response.status}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
+        // Get the script content and filename from response headers
+        const content = await response.text();
+        const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || `${scriptName}.conf`;
         
-        if (data.success && data.script) {
-            // Deduct coins first
-            await deductCoins(price);
-            
-            // Create a Blob from the script content
-            const blob = new Blob([data.script.content], { type: 'text/plain;charset=utf-8' });
-            
-            // Create an object URL from the Blob
-            const url = URL.createObjectURL(blob);
-            
-            // Create a temporary link to trigger the download
-            const link = document.createElement('a');
-            link.href = url;
-            // Use the filename from server response, fallback to script name if not provided
-            link.download = data.script.filename || `${scriptName}.conf`;
-            document.body.appendChild(link);
-            link.click();
-            
-            // Clean up
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            
-            showNotification(`✅ '${scriptName}' başarıyla satın alındı ve indirildi! (${price} coin düşüldü)`, 'success');
-        } else {
-            throw new Error(data.error || 'Geçersiz sunucu yanıtı.');
-        }
+        // Create a Blob from the script content
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        
+        // Create an object URL from the Blob
+        const url = URL.createObjectURL(blob);
+        
+        // Create a temporary link to trigger the download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        showNotification(`✅ '${scriptName}' başarıyla satın alındı ve indirildi! (${price} coin düşüldü)`, 'success');
 
     } catch (error) {
         console.error('❌ Script satın alma hatası:', error);
