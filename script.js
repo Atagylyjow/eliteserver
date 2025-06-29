@@ -162,6 +162,30 @@ function updateCoinDisplay() {
     if (userCoinsElement) {
         userCoinsElement.textContent = userCoins;
     }
+    
+    // Update button states based on coin balance
+    updateButtonStates();
+}
+
+// Update button states based on user's coin balance
+function updateButtonStates() {
+    const buttons = document.querySelectorAll('.unlock-btn');
+    
+    buttons.forEach(button => {
+        const price = parseInt(button.getAttribute('data-price')) || 5;
+        
+        if (userCoins >= price) {
+            // User has enough coins
+            button.disabled = false;
+            button.classList.remove('btn-disabled');
+            button.classList.add('btn-primary', 'btn-secondary');
+        } else {
+            // User doesn't have enough coins
+            button.disabled = true;
+            button.classList.add('btn-disabled');
+            button.classList.remove('btn-primary', 'btn-secondary');
+        }
+    });
 }
 
 // Add coins to user
@@ -292,9 +316,19 @@ async function downloadScript(scriptName) {
     try {
         console.log(`🔽 '${scriptName}' scripti işleniyor...`);
         
+        // Get the price from the button
+        const button = document.querySelector(`[data-script="${scriptName}"]`);
+        const price = parseInt(button.getAttribute('data-price')) || 5;
+        
+        // Check if user has enough coins
+        if (userCoins < price) {
+            showNotification(`❌ Yeterli coin yok! ${price} coin gerekli, ${userCoins} coin var.`, 'error');
+            return;
+        }
+        
         // Check if it's Shadowsocks (show config instead of download)
         if (scriptName === 'shadowsocks') {
-            await showShadowsocksConfig();
+            await showShadowsocksConfig(price);
             return;
         }
 
@@ -312,6 +346,9 @@ async function downloadScript(scriptName) {
         const data = await response.json();
         
         if (data.success && data.script) {
+            // Deduct coins first
+            await deductCoins(price);
+            
             // Create a Blob from the script content
             const blob = new Blob([data.script.content], { type: 'text/plain;charset=utf-8' });
             
@@ -329,20 +366,55 @@ async function downloadScript(scriptName) {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             
-            showNotification(`✅ '${scriptName}' başarıyla indirildi!`, 'success');
+            showNotification(`✅ '${scriptName}' başarıyla satın alındı ve indirildi! (${price} coin düşüldü)`, 'success');
         } else {
             throw new Error(data.error || 'Geçersiz sunucu yanıtı.');
         }
 
     } catch (error) {
-        console.error('❌ Script indirme hatası:', error);
-        showNotification(`❌ Script indirilemedi: ${error.message}`, 'error');
+        console.error('❌ Script satın alma hatası:', error);
+        showNotification(`❌ Script satın alınamadı: ${error.message}`, 'error');
+    }
+}
+
+// Deduct coins from user
+async function deductCoins(amount) {
+    try {
+        // Ensure userId is set
+        if (!userId) {
+            userId = getUserId();
+        }
+        
+        console.log('💰 Coin düşülüyor:', { userId, amount });
+        
+        const response = await fetch(`${API_BASE_URL}/user/${userId}/deduct-coins`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ amount })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            userCoins = data.coins;
+            updateCoinDisplay();
+            console.log('✅ Coin düşüldü:', userCoins);
+        } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+    } catch (error) {
+        console.error('❌ Coin düşülürken hata:', error);
+        throw error;
     }
 }
 
 // Show Shadowsocks Configuration
-async function showShadowsocksConfig() {
+async function showShadowsocksConfig(price) {
     try {
+        // Deduct coins first
+        await deductCoins(price);
+        
         const response = await fetch(`${API_BASE_URL}/scripts`);
         
         if (!response.ok) {
@@ -394,13 +466,15 @@ async function showShadowsocksConfig() {
                 });
             };
             
+            showNotification(`✅ Shadowsocks konfigürasyonu satın alındı! (${price} coin düşüldü)`, 'success');
+            
         } else {
             throw new Error('Shadowsocks konfigürasyonu bulunamadı');
         }
         
     } catch (error) {
         console.error('❌ Shadowsocks konfigürasyonu gösterilirken hata:', error);
-        showNotification('❌ Konfigürasyon gösterilemedi: ' + error.message, 'error');
+        showNotification('❌ Konfigürasyon satın alınamadı: ' + error.message, 'error');
     }
 }
 

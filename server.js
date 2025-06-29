@@ -394,6 +394,35 @@ app.post('/api/user/:userId/add-coins', (req, res) => {
     res.json({ success: true, coins: database.users[userId].coins });
 });
 
+app.post('/api/user/:userId/deduct-coins', (req, res) => {
+    const { userId } = req.params;
+    const { amount } = req.body;
+    
+    debug('Deduct coins API called', { userId, amount, ip: req.ip });
+    
+    if (!database.users[userId]) {
+        database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
+    }
+    
+    const currentCoins = database.users[userId].coins || 0;
+    
+    if (currentCoins < amount) {
+        log('warn', 'Insufficient coins for deduction', { userId, requested: amount, available: currentCoins });
+        return res.status(400).json({ 
+            success: false, 
+            error: 'Yetersiz coin',
+            available: currentCoins,
+            requested: amount
+        });
+    }
+    
+    database.users[userId].coins = currentCoins - amount;
+    writeDatabase(); // Değişiklikleri kaydet
+    
+    log('info', 'Coins deducted from user', { userId, amount, remaining: database.users[userId].coins });
+    res.json({ success: true, coins: database.users[userId].coins });
+});
+
 app.post('/api/user/:userId/use-coins', (req, res) => {
     const { userId } = req.params;
     const { amount } = req.body;
