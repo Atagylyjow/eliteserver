@@ -139,7 +139,7 @@
             background: var(--bg-primary);
             border-radius: 15px;
             padding: 30px;
-            max-width: 600px;
+            max-width: 500px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
@@ -158,81 +158,6 @@
             font-size: 24px;
             cursor: pointer;
             color: var(--text-secondary);
-        }
-        
-        .scripts-section {
-            background: var(--bg-card);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-            margin-bottom: 30px;
-        }
-        
-        .script-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            background: var(--bg-primary);
-        }
-        
-        .script-info h4 {
-            margin: 0 0 5px 0;
-            color: var(--text-primary);
-        }
-        
-        .script-info p {
-            margin: 0 0 5px 0;
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-        
-        .script-info small {
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-        
-        .script-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .btn-edit, .btn-toggle, .btn-delete {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-edit {
-            background: #3498db;
-            color: white;
-        }
-        
-        .btn-toggle.active {
-            background: #27ae60;
-            color: white;
-        }
-        
-        .btn-toggle.inactive {
-            background: #95a5a6;
-            color: white;
-        }
-        
-        .btn-delete {
-            background: #e74c3c;
-            color: white;
-        }
-        
-        .btn-edit:hover, .btn-toggle:hover, .btn-delete:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
     </style>
 </head>
@@ -258,123 +183,116 @@
                     <span class="stat-value" id="active-users">0</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Toplam Script</span>
-                    <span class="stat-value" id="script-count">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Aktif Script</span>
-                    <span class="stat-value" id="active-scripts">0</span>
-                </div>
-                <div class="stat-item">
                     <span class="stat-label">Son Güncelleme</span>
                     <span class="stat-value" id="last-update">-</span>
                 </div>
             </div>
 
-            <!-- Actions -->
+            <!-- Script Stats -->
             <div class="admin-card">
-                <h3><i class="fas fa-tools"></i> Yönetim Araçları</h3>
-                <div class="admin-actions">
-                    <button class="btn-admin" onclick="showAddScriptModal()">
-                        <i class="fas fa-plus"></i> Yeni Script Ekle
-                    </button>
-                    <button class="btn-admin btn-success" onclick="refreshStats()">
-                        <i class="fas fa-sync"></i> Yenile
-                    </button>
-                    <button class="btn-admin" onclick="showBroadcastModal()">
-                        <i class="fas fa-bullhorn"></i> Toplu Mesaj
-                    </button>
+                <h3><i class="fas fa-code"></i> Script İstatistikleri</h3>
+                <div class="stat-item">
+                    <span class="stat-label">DarkTunnel</span>
+                    <span class="stat-value" id="darktunnel-downloads">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">HTTP Custom</span>
+                    <span class="stat-value" id="httpcustom-downloads">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Popülerlik Oranı</span>
+                    <span class="stat-value" id="popularity-ratio">-</span>
+                </div>
+            </div>
+
+            <!-- User Stats -->
+            <div class="admin-card">
+                <h3><i class="fas fa-users"></i> Kullanıcı İstatistikleri</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Toplam Kullanıcı</span>
+                    <span class="stat-value" id="total-users">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Yeni Kullanıcı (Bugün)</span>
+                    <span class="stat-value" id="new-users-today">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Ortalama İndirme</span>
+                    <span class="stat-value" id="avg-downloads">0</span>
                 </div>
             </div>
         </div>
 
-        <!-- Scripts Management -->
-        <div class="scripts-section">
-            <h3><i class="fas fa-code"></i> Script Yönetimi</h3>
-            <div id="scripts-list">
-                <!-- Scripts will be loaded here dynamically -->
+        <!-- Admin Actions -->
+        <div class="admin-card">
+            <h3><i class="fas fa-cogs"></i> Yönetici İşlemleri</h3>
+            <div class="admin-actions">
+                <button class="btn-admin" onclick="refreshStats()">
+                    <i class="fas fa-sync-alt"></i> İstatistikleri Yenile
+                </button>
+                <button class="btn-admin btn-success" onclick="showAddScriptModal()">
+                    <i class="fas fa-plus"></i> Yeni Script Ekle
+                </button>
+                <button class="btn-admin" onclick="showBroadcastModal()">
+                    <i class="fas fa-bullhorn"></i> Toplu Mesaj
+                </button>
+                <button class="btn-admin btn-danger" onclick="showAdminModal()">
+                    <i class="fas fa-user-shield"></i> Yönetici Ekle/Çıkar
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Add Script Modal -->
-    <div id="add-script-modal" class="modal">
+    <div class="modal" id="add-script-modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Yeni Script Ekle</h3>
-                <button class="modal-close" onclick="hideModal('add-script-modal')">&times;</button>
+                <button class="modal-close" onclick="hideModal('add-script-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             <form id="add-script-form">
                 <div class="form-group">
-                    <label for="script-id">Script ID:</label>
-                    <input type="text" id="script-id" required placeholder="örn: wireguard, openvpn">
+                    <label>Script ID</label>
+                    <input type="text" id="script-id" required placeholder="örn: newscript">
                 </div>
                 <div class="form-group">
-                    <label for="script-name">Script Adı:</label>
-                    <input type="text" id="script-name" required placeholder="örn: WireGuard VPN">
+                    <label>Script Adı</label>
+                    <input type="text" id="script-name" required placeholder="örn: Yeni VPN Script">
                 </div>
                 <div class="form-group">
-                    <label for="script-description">Açıklama:</label>
+                    <label>Açıklama</label>
                     <textarea id="script-description" required placeholder="Script açıklaması"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="script-filename">Dosya Adı:</label>
-                    <input type="text" id="script-filename" required placeholder="örn: wireguard.conf, script.json, config.yaml">
-                    <small style="color: #e74c3c; font-size: 12px;">⚠️ .txt uzantısı kabul edilmez! Lütfen .conf, .json, .yaml gibi uzantılar kullanın.</small>
+                    <label>Script İçeriği</label>
+                    <textarea id="script-content" required placeholder="# Script içeriği buraya"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="script-content">Script İçeriği:</label>
-                    <textarea id="script-content" required rows="10" placeholder="Script içeriğini buraya yazın"></textarea>
+                    <label>Dosya Adı</label>
+                    <input type="text" id="script-filename" required placeholder="örn: newscript.conf">
                 </div>
-                <button type="submit" class="btn-admin">Script Ekle</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Edit Script Modal -->
-    <div id="edit-script-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Script Düzenle</h3>
-                <button class="modal-close" onclick="hideModal('edit-script-modal')">&times;</button>
-            </div>
-            <form id="edit-script-form">
-                <input type="hidden" id="edit-script-id">
-                <div class="form-group">
-                    <label for="edit-script-name">Script Adı:</label>
-                    <input type="text" id="edit-script-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="edit-script-description">Açıklama:</label>
-                    <textarea id="edit-script-description" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="edit-script-filename">Dosya Adı:</label>
-                    <input type="text" id="edit-script-filename" required>
-                    <small style="color: #e74c3c; font-size: 12px;">⚠️ .txt uzantısı kabul edilmez! Lütfen .conf, .json, .yaml gibi uzantılar kullanın.</small>
-                </div>
-                <div class="form-group">
-                    <label for="edit-script-content">Script İçeriği:</label>
-                    <textarea id="edit-script-content" required rows="10"></textarea>
-                </div>
-                <button type="submit" class="btn-admin">Güncelle</button>
+                <button type="submit" class="btn-admin btn-success">Script Ekle</button>
             </form>
         </div>
     </div>
 
     <!-- Broadcast Modal -->
-    <div id="broadcast-modal" class="modal">
+    <div class="modal" id="broadcast-modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Toplu Mesaj Gönder</h3>
-                <button class="modal-close" onclick="hideModal('broadcast-modal')">&times;</button>
+                <button class="modal-close" onclick="hideModal('broadcast-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             <form id="broadcast-form">
                 <div class="form-group">
-                    <label for="broadcast-message">Mesaj:</label>
-                    <textarea id="broadcast-message" required rows="5" placeholder="Tüm kullanıcılara gönderilecek mesaj"></textarea>
+                    <label>Mesaj</label>
+                    <textarea id="broadcast-message" required placeholder="Göndermek istediğiniz mesaj"></textarea>
                 </div>
-                <button type="submit" class="btn-admin">Gönder</button>
+                <button type="submit" class="btn-admin">Mesajı Gönder</button>
             </form>
         </div>
     </div>
