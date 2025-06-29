@@ -71,12 +71,6 @@ body {
     align-items: center;
 }
 
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
 .logo {
     display: flex;
     align-items: center;
