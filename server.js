@@ -2,6 +2,59 @@ const express = require('express');
 const TelegramBot = require('node-telegram-bot-api');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+
+// Debug ve loglama sistemi
+const DEBUG_MODE = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const LOG_FILE = 'app.log';
+
+// Loglama fonksiyonu
+function log(level, message, data = null) {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+        timestamp,
+        level,
+        message,
+        data
+    };
+    
+    const logString = `[${timestamp}] ${level.toUpperCase()}: ${message}${data ? ` | Data: ${JSON.stringify(data)}` : ''}`;
+    
+    // Console'a yazdır
+    if (DEBUG_MODE || level === 'error') {
+        console.log(logString);
+    }
+    
+    // Dosyaya yazdır
+    try {
+        fs.appendFileSync(LOG_FILE, logString + '\n');
+    } catch (error) {
+        console.error('Log dosyasına yazma hatası:', error);
+    }
+}
+
+// Debug fonksiyonu
+function debug(message, data = null) {
+    if (DEBUG_MODE) {
+        log('debug', message, data);
+    }
+}
+
+// Error handling middleware
+function errorHandler(err, req, res, next) {
+    log('error', 'Express error handler', {
+        error: err.message,
+        stack: err.stack,
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+    });
+    
+    res.status(500).json({
+        success: false,
+        error: DEBUG_MODE ? err.message : 'Internal server error'
+    });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,10 +65,30 @@ const token = '7762459827:AAFFQRGpSphgUqw2MHhMngCMQeBHZLHrHCo';
 // Bot oluştur
 const bot = new TelegramBot(token, { polling: true });
 
+// Bot event handlers
+bot.on('polling_error', (error) => {
+    log('error', 'Bot polling error', { error: error.message });
+});
+
+bot.on('error', (error) => {
+    log('error', 'Bot error', { error: error.message });
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
+
+// Request logging middleware
+app.use((req, res, next) => {
+    debug('Incoming request', {
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+    });
+    next();
+});
 
 // Basit veritabanı (gerçek projede MongoDB veya PostgreSQL kullanın)
 let database = {
@@ -132,21 +205,39 @@ function updateStats(scriptType) {
 
 // API Routes
 app.get('/api/stats', (req, res) => {
+    debug('Stats API called', { ip: req.ip });
+    
     // Aktif kullanıcı sayısını güncelle
     database.stats.activeUsers = Object.keys(database.users).length;
     
     // Toplam kullanıcı sayısı - unique user ID sayısı
     database.stats.totalUsers = Object.keys(database.users).length;
     
+    log('info', 'Stats requested', { 
+        totalDownloads: database.stats.totalDownloads,
+        activeUsers: database.stats.activeUsers,
+        totalUsers: database.stats.totalUsers
+    });
+    
     res.json(database.stats);
 });
 
 app.get('/api/scripts', (req, res) => {
+    debug('Scripts API called', { ip: req.ip });
+    
+    const scripts = Object.keys(database.vpnScripts);
+    log('info', 'Scripts requested', { 
+        scriptCount: scripts.length,
+        scripts: scripts
+    });
+    
     res.json(database.vpnScripts);
 });
 
 app.post('/api/download', (req, res) => {
     const { scriptType, userId } = req.body;
+    
+    debug('Download API called', { scriptType, userId, ip: req.ip });
     
     if (database.vpnScripts[scriptType] && database.vpnScripts[scriptType].enabled) {
         updateStats(scriptType);
@@ -154,9 +245,16 @@ app.post('/api/download', (req, res) => {
         // Kullanıcı istatistiklerini güncelle
         if (!database.users[userId]) {
             database.users[userId] = { downloads: 0, firstSeen: new Date() };
+            log('info', 'New user registered', { userId });
         }
         database.users[userId].downloads++;
         database.users[userId].lastDownload = new Date();
+        
+        log('info', 'Script downloaded successfully', {
+            scriptType,
+            userId,
+            userDownloads: database.users[userId].downloads
+        });
         
         res.json({
             success: true,
@@ -164,6 +262,12 @@ app.post('/api/download', (req, res) => {
             stats: database.stats
         });
     } else {
+        log('warn', 'Script download failed', {
+            scriptType,
+            userId,
+            reason: 'Script not found or disabled'
+        });
+        
         res.status(400).json({ success: false, error: 'Script bulunamadı veya devre dışı' });
     }
 });
@@ -172,7 +276,10 @@ app.post('/api/download', (req, res) => {
 app.post('/api/admin/add-script', (req, res) => {
     const { adminId, scriptData } = req.body;
     
+    debug('Admin add script API called', { adminId, scriptData, ip: req.ip });
+    
     if (!isAdmin(adminId)) {
+        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
         return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
     }
     
@@ -185,20 +292,29 @@ app.post('/api/admin/add-script', (req, res) => {
         enabled: true
     };
     
+    log('info', 'Script added by admin', { adminId, scriptId: id, scriptName: name });
+    
     res.json({ success: true, message: 'Script başarıyla eklendi' });
 });
 
 app.post('/api/admin/update-script', (req, res) => {
     const { adminId, scriptId, updates } = req.body;
     
+    debug('Admin update script API called', { adminId, scriptId, updates, ip: req.ip });
+    
     if (!isAdmin(adminId)) {
+        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
         return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
     }
     
     if (database.vpnScripts[scriptId]) {
         database.vpnScripts[scriptId] = { ...database.vpnScripts[scriptId], ...updates };
+        
+        log('info', 'Script updated by admin', { adminId, scriptId, updates });
+        
         res.json({ success: true, message: 'Script başarıyla güncellendi' });
     } else {
+        log('warn', 'Script update failed - not found', { adminId, scriptId });
         res.status(404).json({ success: false, error: 'Script bulunamadı' });
     }
 });
@@ -206,17 +322,31 @@ app.post('/api/admin/update-script', (req, res) => {
 app.post('/api/admin/toggle-script', (req, res) => {
     const { adminId, scriptId } = req.body;
     
+    debug('Admin toggle script API called', { adminId, scriptId, ip: req.ip });
+    
     if (!isAdmin(adminId)) {
+        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
         return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
     }
     
     if (database.vpnScripts[scriptId]) {
+        const oldStatus = database.vpnScripts[scriptId].enabled;
         database.vpnScripts[scriptId].enabled = !database.vpnScripts[scriptId].enabled;
+        const newStatus = database.vpnScripts[scriptId].enabled;
+        
+        log('info', 'Script toggled by admin', { 
+            adminId, 
+            scriptId, 
+            oldStatus, 
+            newStatus 
+        });
+        
         res.json({ 
             success: true, 
-            message: `Script ${database.vpnScripts[scriptId].enabled ? 'etkinleştirildi' : 'devre dışı bırakıldı'}` 
+            message: `Script ${newStatus ? 'etkinleştirildi' : 'devre dışı bırakıldı'}` 
         });
     } else {
+        log('warn', 'Script toggle failed - not found', { adminId, scriptId });
         res.status(404).json({ success: false, error: 'Script bulunamadı' });
     }
 });
@@ -224,9 +354,17 @@ app.post('/api/admin/toggle-script', (req, res) => {
 app.get('/api/admin/users', (req, res) => {
     const { adminId } = req.query;
     
+    debug('Admin users API called', { adminId, ip: req.ip });
+    
     if (!isAdmin(parseInt(adminId))) {
+        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
         return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
     }
+    
+    log('info', 'Users data requested by admin', { 
+        adminId, 
+        userCount: Object.keys(database.users).length 
+    });
     
     res.json({ success: true, users: database.users });
 });
@@ -767,17 +905,46 @@ ${Object.entries(database.users)
 
 // Sunucuyu başlat
 app.listen(PORT, () => {
+    log('info', 'VPN Script Hub Server başlatıldı', {
+        port: PORT,
+        debugMode: DEBUG_MODE,
+        logFile: LOG_FILE
+    });
     console.log(`🚀 VPN Script Hub Server başlatıldı!`);
     console.log(`📡 Port: ${PORT}`);
     console.log(`🤖 Bot Token: ${token}`);
     console.log(`🌐 Web App URL: https://atagylyjow.github.io/TG-Web-App/`);
+    console.log(`🔧 Debug Mode: ${DEBUG_MODE}`);
+    console.log(`📝 Log File: ${LOG_FILE}`);
 });
+
+// Error handling middleware'i ekle
+app.use(errorHandler);
 
 // Hata yakalama
 process.on('uncaughtException', (error) => {
+    log('error', 'Uncaught Exception', {
+        error: error.message,
+        stack: error.stack
+    });
     console.error('Uncaught Exception:', error);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
+    log('error', 'Unhandled Rejection', {
+        reason: reason,
+        promise: promise
+    });
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    log('info', 'SIGTERM received, shutting down gracefully');
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    log('info', 'SIGINT received, shutting down gracefully');
+    process.exit(0);
 }); 
