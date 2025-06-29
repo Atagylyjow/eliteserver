@@ -188,36 +188,53 @@ function initializeMonetag() {
         console.log('🔧 Monetag SDK başlatılıyor...');
         console.log('📋 Zone ID:', '9499819');
         
+        // SDK yükleme durumunu kontrol et
+        console.log('🔍 SDK yükleme durumu:', {
+            show_9499819: typeof window.show_9499819,
+            monetagLoaded: window.monetagLoaded,
+            documentReady: document.readyState
+        });
+        
         // Telegram WebApp SDK'yı hazırla
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready();
             console.log('✅ Telegram WebApp SDK hazır');
-            
-            // Telegram WebApp'in hazır olduğundan emin ol
-            if (window.Telegram.WebApp.isExpanded) {
-                console.log('✅ Telegram WebApp genişletilmiş');
-            }
+            console.log('📱 Telegram WebApp durumu:', {
+                isExpanded: window.Telegram.WebApp.isExpanded,
+                platform: window.Telegram.WebApp.platform,
+                version: window.Telegram.WebApp.version
+            });
         } else {
             console.log('⚠️ Telegram WebApp SDK bulunamadı, normal web modunda çalışıyor');
         }
         
         // Monetag SDK'nın yüklenmesini bekle
         const checkMonetag = setInterval(() => {
+            console.log('🔄 SDK kontrol ediliyor...', {
+                show_9499819: typeof window.show_9499819,
+                monetagLoaded: window.monetagLoaded
+            });
+            
             if (window.show_9499819 && typeof window.show_9499819 === 'function') {
                 clearInterval(checkMonetag);
                 monetagReady = true;
                 console.log('✅ Monetag SDK başarıyla yüklendi');
                 preloadMonetagAd();
             }
-        }, 100);
+        }, 500); // 500ms'ye çıkaralım
         
-        // 10 saniye sonra timeout
+        // 15 saniye sonra timeout
         setTimeout(() => {
             if (!monetagReady) {
                 clearInterval(checkMonetag);
                 console.error('❌ Monetag SDK yüklenemedi');
+                console.error('🔍 Son durum:', {
+                    show_9499819: typeof window.show_9499819,
+                    monetagLoaded: window.monetagLoaded,
+                    windowKeys: Object.keys(window).filter(key => key.includes('show_'))
+                });
             }
-        }, 10000);
+        }, 15000);
         
     } catch (error) {
         console.error('❌ Monetag SDK başlatılamadı:', error);
@@ -233,10 +250,16 @@ async function preloadMonetagAd() {
     
     try {
         console.log('📦 Monetag reklamı preload ediliyor...');
+        const userId = generateUserId();
+        
         await window.show_9499819({ 
             type: 'preload', 
-            ymid: generateUserId() 
+            ymid: userId 
+        }).catch(error => {
+            console.error('❌ Preload hatası:', error);
+            throw error;
         });
+        
         monetagPreloaded = true;
         console.log('✅ Monetag reklamı preload edildi');
     } catch (error) {
@@ -270,12 +293,18 @@ async function showMonetagAd() {
         console.log('📺 Monetag reklamı gösteriliyor...');
         const userId = generateUserId();
         
+        // Monetag'ın önerdiği şekilde .catch() ile hata yakalama
         const result = await window.show_9499819({ 
-            ymid: userId 
+            ymid: userId,
+            requestVar: currentScript // Hangi script için reklam gösterildiğini izle
+        }).catch(error => {
+            console.error('❌ Monetag reklamı hatası:', error);
+            throw error;
         });
         
         console.log('✅ Monetag reklamı başarıyla tamamlandı');
         console.log('👤 User ID:', userId);
+        console.log('📊 Reklam sonucu:', result);
         
         return true;
     } catch (error) {
@@ -722,5 +751,36 @@ if (tg) {
     // tg.MainButton.show();
 }
 
-console.log('VPN Script Hub loaded successfully!'); 
-console.log('VPN Script Hub loaded successfully!'); 
+console.log('VPN Script Hub loaded successfully!');
+
+// Test fonksiyonu - Telegram WebApp'te SDK durumunu kontrol et
+function testMonetagSDK() {
+    console.log('🧪 Monetag SDK Test Başlatılıyor...');
+    
+    const testResults = {
+        sdkLoaded: !!window.show_9499819,
+        sdkType: typeof window.show_9499819,
+        monetagLoaded: window.monetagLoaded,
+        monetagError: window.monetagError,
+        telegramWebApp: !!(window.Telegram && window.Telegram.WebApp),
+        platform: window.Telegram?.WebApp?.platform || 'unknown',
+        version: window.Telegram?.WebApp?.version || 'unknown',
+        isExpanded: window.Telegram?.WebApp?.isExpanded || false
+    };
+    
+    console.log('📊 Test Sonuçları:', testResults);
+    
+    if (testResults.sdkLoaded && testResults.sdkType === 'function') {
+        console.log('✅ SDK hazır, test reklamı gösteriliyor...');
+        showMonetagAd().then(result => {
+            console.log('🎯 Test reklamı sonucu:', result);
+        });
+    } else {
+        console.error('❌ SDK hazır değil:', testResults);
+    }
+    
+    return testResults;
+}
+
+// Global olarak erişilebilir yap
+window.testMonetagSDK = testMonetagSDK; 

@@ -14,19 +14,44 @@
     <script>
         // Monetag SDK yükleme kontrolü
         window.monetagLoaded = false;
+        window.monetagError = null;
+        
+        // SDK yükleme durumunu izle
+        function checkMonetagSDK() {
+            if (window.show_9499819 && typeof window.show_9499819 === 'function') {
+                console.log('✅ Monetag SDK başarıyla yüklendi');
+                window.monetagLoaded = true;
+                return true;
+            }
+            return false;
+        }
+        
+        // Sayfa yüklendiğinde kontrol et
         window.addEventListener('load', function() {
+            console.log('📄 Sayfa yüklendi, Monetag SDK kontrol ediliyor...');
+            
+            // İlk kontrol
+            if (checkMonetagSDK()) {
+                return;
+            }
+            
+            // 3 saniye sonra tekrar kontrol et
             setTimeout(function() {
-                if (!window.show_9499819) {
-                    console.warn('⚠️ Monetag SDK yüklenemedi, fallback modu aktif');
-                    window.monetagLoaded = false;
-                } else {
-                    console.log('✅ Monetag SDK yüklendi');
-                    window.monetagLoaded = true;
+                if (checkMonetagSDK()) {
+                    return;
                 }
+                
+                // 5 saniye sonra son kontrol
+                setTimeout(function() {
+                    if (!checkMonetagSDK()) {
+                        console.warn('⚠️ Monetag SDK yüklenemedi');
+                        window.monetagError = 'SDK yüklenemedi';
+                    }
+                }, 2000);
             }, 3000);
         });
     </script>
-    <script src='//libtl.com/sdk.js' data-zone='9499819' data-sdk='show_9499819' async></script>
+    <script src='//libtl.com/sdk.js' data-zone='9499819' data-sdk='show_9499819' async defer></script>
 </head>
 <body>
     <div class="app-container">
