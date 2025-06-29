@@ -315,40 +315,14 @@ async function showFallbackAd() {
     return new Promise((resolve) => {
         console.log('📺 Fallback reklamı gösteriliyor...');
         
-        // Modal'ı güncelle
-        const adPlaceholder = adModal.querySelector('.ad-placeholder');
-        if (adPlaceholder) {
-            adPlaceholder.innerHTML = `
-                <i class="fas fa-ad"></i>
-                <p>Demo Reklam</p>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 0%"></div>
-                </div>
-                <div class="timer">3</div>
-            `;
-        }
+        // Loading notification göster
+        showNotification('📺 Reklam yükleniyor...', 'info');
         
-        // Timer ve progress
-        let timeLeft = 3;
-        const timerElement = adModal.querySelector('.timer');
-        const progressFill = adModal.querySelector('.progress-fill');
-        
-        const countdown = setInterval(() => {
-            timeLeft--;
-            if (timerElement) {
-                timerElement.textContent = timeLeft;
-            }
-            if (progressFill) {
-                progressFill.style.width = ((3 - timeLeft) / 3 * 100) + '%';
-            }
-            
-            if (timeLeft <= 0) {
-                clearInterval(countdown);
-                hideAdModal();
-                console.log('✅ Fallback reklamı tamamlandı');
-                resolve(true);
-            }
-        }, 1000);
+        // 3 saniye sonra otomatik olarak tamamla
+        setTimeout(() => {
+            console.log('✅ Fallback reklamı tamamlandı');
+            resolve(true);
+        }, 3000);
     });
 }
 
@@ -444,12 +418,8 @@ FINAL,DIRECT`,
 
 // DOM Elements
 const themeToggle = document.getElementById('theme-toggle');
-const adModal = document.getElementById('ad-modal');
 const downloadModal = document.getElementById('download-modal');
-const modalClose = document.getElementById('modal-close');
 const downloadModalClose = document.getElementById('download-modal-close');
-const progressFill = document.getElementById('progress-fill');
-const timer = document.getElementById('timer');
 const downloadBtn = document.getElementById('download-btn');
 const downloadScriptName = document.getElementById('download-script-name');
 const downloadScriptDesc = document.getElementById('download-script-desc');
@@ -459,12 +429,8 @@ const activeUsersElement = document.getElementById('active-users');
 // Debug DOM elements
 console.log('🔍 DOM Elementleri kontrol ediliyor...');
 console.log('🎨 Theme toggle:', !!themeToggle);
-console.log('📺 Ad modal:', !!adModal);
 console.log('📥 Download modal:', !!downloadModal);
-console.log('❌ Modal close:', !!modalClose);
 console.log('❌ Download modal close:', !!downloadModalClose);
-console.log('📊 Progress fill:', !!progressFill);
-console.log('⏰ Timer:', !!timer);
 console.log('⬇️ Download btn:', !!downloadBtn);
 console.log('📝 Download script name:', !!downloadScriptName);
 console.log('📄 Download script desc:', !!downloadScriptDesc);
@@ -512,58 +478,13 @@ document.querySelectorAll('.unlock-btn').forEach(btn => {
             const scriptType = scriptCard.dataset.script;
             console.log('📝 Script type:', scriptType);
             currentScript = scriptType;
-            console.log('🎬 Reklam modalı açılıyor...');
-            showAdModal();
+            console.log('🎬 Reklam gösteriliyor...');
+            handleMonetagAd();
         } else {
             console.error('❌ Script card bulunamadı!');
         }
     });
 });
-
-// Show Ad Modal
-function showAdModal() {
-    console.log('🎬 showAdModal çağrıldı');
-    
-    // Modal'ı göster ve loading durumunu ayarla
-    adModal.classList.add('show');
-    
-    // Loading durumunu göster
-    const adPlaceholder = adModal.querySelector('.ad-placeholder');
-    if (adPlaceholder) {
-        adPlaceholder.innerHTML = `
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Reklam yükleniyor...</p>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: 0%"></div>
-            </div>
-        `;
-    }
-    
-    // Progress bar animasyonu
-    let progress = 0;
-    const progressFill = adModal.querySelector('.progress-fill');
-    const progressInterval = setInterval(() => {
-        progress += 2;
-        if (progressFill) {
-            progressFill.style.width = progress + '%';
-        }
-        if (progress >= 100) {
-            clearInterval(progressInterval);
-        }
-    }, 50);
-    
-    // Monetag reklamını göster
-    console.log('🔄 Monetag reklamı gösteriliyor...');
-    handleMonetagAd();
-}
-
-// Hide Ad Modal
-function hideAdModal() {
-    adModal.classList.remove('show');
-    if (adTimer) {
-        clearInterval(adTimer);
-    }
-}
 
 // Show Monetag Ad (Modal handler)
 async function handleMonetagAd() {
@@ -573,17 +494,14 @@ async function handleMonetagAd() {
         
         if (adWatched) {
             // Kullanıcı reklamı tamamladı
-            hideAdModal();
             showNotification('✅ Reklam tamamlandı! Script indiriliyor...', 'success');
             showDownloadModal();
         } else {
             // Kullanıcı reklamı tamamlamadı
-            hideAdModal();
             showNotification('❌ Reklam tamamlanmadı. Lütfen tekrar deneyin.', 'error');
         }
     } catch (error) {
         console.error('Reklam gösterme hatası:', error);
-        hideAdModal();
         showNotification('❌ Reklam yüklenirken hata oluştu.', 'error');
     }
 }
@@ -602,16 +520,9 @@ function hideDownloadModal() {
 }
 
 // Modal Close Events
-modalClose.addEventListener('click', hideAdModal);
 downloadModalClose.addEventListener('click', hideDownloadModal);
 
 // Close modals when clicking outside
-adModal.addEventListener('click', (e) => {
-    if (e.target === adModal) {
-        hideAdModal();
-    }
-});
-
 downloadModal.addEventListener('click', (e) => {
     if (e.target === downloadModal) {
         hideDownloadModal();
@@ -780,7 +691,6 @@ document.querySelectorAll('.script-card').forEach(card => {
 // Add keyboard shortcuts
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        hideAdModal();
         hideDownloadModal();
     }
 });
