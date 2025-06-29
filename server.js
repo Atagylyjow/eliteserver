@@ -90,13 +90,17 @@ app.use((req, res, next) => {
     next();
 });
 
-// Basit veritabanı (gerçek projede MongoDB veya PostgreSQL kullanın)
+// --- Kalıcı Veritabanı Sistemi ---
+const DB_FILE = path.join(__dirname, 'db.json');
+
 let database = {
     stats: {
         totalDownloads: 0,
         activeUsers: 0,
         darktunnelDownloads: 0,
         httpcustomDownloads: 0,
+        npvtunnelDownloads: 0,
+        shadowsocksDownloads: 0,
         lastUpdated: new Date()
     },
     users: {},
@@ -253,6 +257,31 @@ FINAL,DIRECT`,
     }
 };
 
+function readDatabase() {
+    try {
+        if (fs.existsSync(DB_FILE)) {
+            const data = fs.readFileSync(DB_FILE, 'utf-8');
+            database = JSON.parse(data);
+            log('info', 'Veritabanı dosyadan başarıyla okundu.');
+        } else {
+            fs.writeFileSync(DB_FILE, JSON.stringify(database, null, 2));
+            log('info', 'Yeni veritabanı dosyası oluşturuldu.');
+        }
+    } catch (error) {
+        log('error', 'Veritabanı okunurken hata oluştu.', { error: error.message });
+    }
+}
+
+function writeDatabase() {
+    try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(database, null, 2));
+        debug('Veritabanı dosyaya başarıyla yazıldı.');
+    } catch (error) {
+        log('error', 'Veritabanı yazılırken hata oluştu.', { error: error.message });
+    }
+}
+// --- Veritabanı Sistemi Sonu ---
+
 // Yönetici kontrolü
 function isAdmin(chatId) {
     return database.admins.includes(chatId);
@@ -265,6 +294,10 @@ function updateStats(scriptType) {
         database.stats.darktunnelDownloads++;
     } else if (scriptType === 'httpcustom') {
         database.stats.httpcustomDownloads++;
+    } else if (scriptType === 'npvtunnel') {
+        database.stats.npvtunnelDownloads++;
+    } else if (scriptType === 'shadowsocks') {
+        database.stats.shadowsocksDownloads++;
     }
     database.stats.lastUpdated = new Date();
 }
@@ -306,40 +339,32 @@ app.post('/api/download/:scriptName', (req, res) => {
     
     debug('Download API called', { scriptName, userId, ip: req.ip });
     
-    if (database.vpnScripts[scriptName] && database.vpnScripts[scriptName].enabled) {
+    const script = database.vpnScripts[scriptName];
+    if (script && script.enabled) {
+        // İstatistikleri ve kullanıcı verilerini güncelle
         updateStats(scriptName);
-        
-        // Kullanıcı istatistiklerini güncelle
-        if (!database.users[userId]) {
-            database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
-            log('info', 'New user registered', { userId });
+        if (userId && userId !== 'anonymous') {
+            if (!database.users[userId]) {
+                database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
+            }
+            database.users[userId].downloads++;
+            database.users[userId].lastDownload = new Date();
         }
-        database.users[userId].downloads++;
-        database.users[userId].lastDownload = new Date();
         
-        log('info', 'Script downloaded successfully', {
-            scriptName,
-            userId,
-            userDownloads: database.users[userId].downloads
-        });
+        writeDatabase(); // Değişiklikleri kaydet
         
-        // Script içeriğini blob olarak oluştur ve URL döndür
-        const scriptContent = database.vpnScripts[scriptName].content;
-        const blob = new Blob([scriptContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
+        log('info', 'Script download request successful', { scriptName, userId });
         
+        // İndirme için script içeriğini gönder
         res.json({
             success: true,
-            url: url,
-            script: database.vpnScripts[scriptName]
+            script: {
+                content: script.content,
+                filename: script.filename
+            }
         });
     } else {
-        log('warn', 'Script download failed', {
-            scriptName,
-            userId,
-            reason: 'Script not found or disabled'
-        });
-        
+        log('warn', 'Script download failed', { scriptName, userId, reason: 'Script not found or disabled' });
         res.status(400).json({ success: false, error: 'Script bulunamadı veya devre dışı' });
     }
 });
@@ -347,37 +372,26 @@ app.post('/api/download/:scriptName', (req, res) => {
 // Coin sistemi API'leri
 app.get('/api/user/:userId/coins', (req, res) => {
     const { userId } = req.params;
-    
-    debug('User coins API called', { userId, ip: req.ip });
-    
     if (!database.users[userId]) {
         database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
+        writeDatabase();
     }
-    
-    res.json({
-        success: true,
-        coins: database.users[userId].coins || 0
-    });
+    res.json({ success: true, coins: database.users[userId].coins || 0 });
 });
 
 app.post('/api/user/:userId/add-coins', (req, res) => {
     const { userId } = req.params;
     const { amount } = req.body;
     
-    debug('Add coins API called', { userId, amount, ip: req.ip });
-    
     if (!database.users[userId]) {
         database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
     }
     
     database.users[userId].coins = (database.users[userId].coins || 0) + amount;
+    writeDatabase(); // Değişiklikleri kaydet
     
     log('info', 'Coins added to user', { userId, amount, newTotal: database.users[userId].coins });
-    
-    res.json({
-        success: true,
-        coins: database.users[userId].coins
-    });
+    res.json({ success: true, coins: database.users[userId].coins });
 });
 
 app.post('/api/user/:userId/use-coins', (req, res) => {
@@ -1033,12 +1047,14 @@ ${Object.entries(database.users)
 
 // Sunucuyu başlat
 app.listen(PORT, () => {
-    log('info', 'VPN Script Hub Server başlatıldı', {
+    readDatabase(); // Sunucu başlarken veritabanını oku
+    log('info', `🚀 VPN Script Hub Server başlatıldı!`, {
         port: PORT,
+        botToken: `***${token.slice(-6)}`,
+        webAppUrl: `https://atagylyjow.github.io/TG-Web-App/`,
         debugMode: DEBUG_MODE,
         logFile: LOG_FILE
     });
-    console.log(`🚀 VPN Script Hub Server başlatıldı!`);
     console.log(`📡 Port: ${PORT}`);
     console.log(`🤖 Bot Token: ${token}`);
     console.log(`🌐 Web App URL: https://atagylyjow.github.io/TG-Web-App/`);

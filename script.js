@@ -310,58 +310,52 @@ function toggleTheme() {
 async function downloadScript(scriptName) {
     try {
         console.log(`🔽 '${scriptName}' scripti işleniyor...`);
-
+        
         // Check if it's Shadowsocks (show config instead of download)
         if (scriptName === 'shadowsocks') {
             await showShadowsocksConfig();
             return;
         }
 
-        console.log('📡 Backend\'e indirme isteği gönderiliyor...');
-        
-        // Backend'e indirme isteği gönder
         const response = await fetch(`${API_BASE_URL}/download/${scriptName}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                userId: getUserId()
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: getUserId() })
         });
 
-        console.log('📥 Backend yanıtı:', response.status, response.statusText);
-
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({
-                message: 'Bilinmeyen sunucu hatası'
-            }));
-            throw new Error(errorData.message || `HTTP hatası! Durum: ${response.status}`);
+            const errorData = await response.json().catch(() => ({ message: 'Sunucu hatası' }));
+            throw new Error(errorData.message || `HTTP ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('📄 Backend verisi:', data);
-
-        if (data.url) {
-            console.log('🔗 İndirme URL\'si alındı:', data.url);
+        
+        if (data.success && data.script) {
+            // Create a Blob from the script content
+            const blob = new Blob([data.script.content], { type: 'text/plain;charset=utf-8' });
             
-            // Tarayıcıda indirme başlat
+            // Create an object URL from the Blob
+            const url = URL.createObjectURL(blob);
+            
+            // Create a temporary link to trigger the download
             const link = document.createElement('a');
-            link.href = data.url;
+            link.href = url;
             link.download = data.script.filename || `${scriptName}.conf`;
             document.body.appendChild(link);
             link.click();
+            
+            // Clean up
             document.body.removeChild(link);
+            URL.revokeObjectURL(url);
             
             showNotification(`✅ '${scriptName}' başarıyla indirildi!`, 'success');
-            console.log('✅ İndirme tamamlandı');
         } else {
-            throw new Error('İndirme URL\'si alınamadı.');
+            throw new Error(data.error || 'Geçersiz sunucu yanıtı.');
         }
 
     } catch (error) {
-        console.error('❌ Script işleme hatası:', error);
-        showNotification(`❌ Script işlenemedi: ${error.message}`, 'error');
+        console.error('❌ Script indirme hatası:', error);
+        showNotification(`❌ Script indirilemedi: ${error.message}`, 'error');
     }
 }
 
@@ -556,53 +550,18 @@ loadUserCoins();
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔧 DOM yüklendi, buton event listener\'ları ekleniyor...');
     
-    // Add click handlers for all download buttons
-    const buttons = document.querySelectorAll('.unlock-btn');
-    console.log('🔍 Bulunan buton sayısı:', buttons.length);
-    
-    buttons.forEach((btn, index) => {
-        const scriptName = btn.getAttribute('data-script');
-        console.log(`🔗 Buton ${index + 1}:`, scriptName);
-        
-        btn.addEventListener('click', function(e) {
+    // Use event delegation for dynamically added elements
+    document.body.addEventListener('click', function(e) {
+        const button = e.target.closest('.unlock-btn');
+        if (button) {
             e.preventDefault();
+            const scriptName = button.getAttribute('data-script');
             console.log('🖱️ Buton tıklandı:', scriptName);
-            
             if (scriptName) {
                 downloadScript(scriptName);
-            } else {
-                console.error('❌ Script adı bulunamadı');
             }
-        });
+        }
     });
 });
-
-// Also add handlers after a delay in case elements load later
-setTimeout(() => {
-    console.log('⏰ Gecikmeli buton event listener\'ları ekleniyor...');
-    
-    const buttons = document.querySelectorAll('.unlock-btn');
-    console.log('🔍 Gecikmeli bulunan buton sayısı:', buttons.length);
-    
-    buttons.forEach((btn, index) => {
-        const scriptName = btn.getAttribute('data-script');
-        console.log(`🔗 Gecikmeli buton ${index + 1}:`, scriptName);
-        
-        // Remove existing listeners to avoid duplicates
-        btn.replaceWith(btn.cloneNode(true));
-        const newBtn = document.querySelectorAll('.unlock-btn')[index];
-        
-        newBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('🖱️ Gecikmeli buton tıklandı:', scriptName);
-            
-            if (scriptName) {
-                downloadScript(scriptName);
-            } else {
-                console.error('❌ Script adı bulunamadı');
-            }
-        });
-    });
-}, 1000);
 
 console.log('VPN Script Hub loaded successfully!'); 
