@@ -47,9 +47,9 @@ function initializeTelegramWebApp() {
         document.documentElement.setAttribute('data-theme', 'light');
     }
     
-    console.log('🔧 AdsGram başlatılıyor...');
-    // Initialize AdsGram SDK
-    initializeAdsGram();
+    console.log('🔧 Monetag başlatılıyor...');
+    // Initialize Monetag SDK
+    initializeMonetag();
     
     console.log('📊 İstatistikler yükleniyor...');
     // Load initial stats
@@ -178,73 +178,100 @@ setTimeout(initializeTelegramWebApp, 1000);
 // Periyodik istatistik güncellemesi
 setInterval(updateStats, 30000); // Her 30 saniyede bir güncelle
 
-// AdsGram Controller
-let AdController = null;
+// Monetag Controller
+let monetagReady = false;
+let monetagPreloaded = false;
 
-// Initialize AdsGram SDK
-function initializeAdsGram() {
+// Initialize Monetag SDK
+function initializeMonetag() {
     try {
-        console.log('🔧 AdsGram SDK başlatılıyor...');
-        console.log('📋 Block ID:', 'int-12281');
+        console.log('🔧 Monetag SDK başlatılıyor...');
+        console.log('📋 Zone ID:', '9499819');
         
-        // 🔥 BURAYA KENDİ BLOCK ID'NİZİ YAZIN 🔥
-        // Örnek: "abc123def456" (tırnak işaretleri olmadan)
-        // https://partner.adsgram.ai adresinden Block ID'nizi alın
-        AdController = window.Adsgram.init({ 
-            blockId: "int-12281"  // ← BURAYA KENDİ BLOCK ID'NİZİ YAZIN
-        });
+        // Telegram WebApp SDK'yı hazırla
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            console.log('✅ Telegram WebApp SDK hazır');
+        }
         
-        console.log('✅ AdsGram SDK başarıyla başlatıldı');
-        console.log('🎮 AdController:', AdController);
+        // Monetag SDK'nın yüklenmesini bekle
+        const checkMonetag = setInterval(() => {
+            if (window.show_9499819) {
+                clearInterval(checkMonetag);
+                monetagReady = true;
+                console.log('✅ Monetag SDK başarıyla yüklendi');
+                preloadMonetagAd();
+            }
+        }, 100);
+        
+        // 10 saniye sonra timeout
+        setTimeout(() => {
+            if (!monetagReady) {
+                clearInterval(checkMonetag);
+                console.error('❌ Monetag SDK yüklenemedi');
+            }
+        }, 10000);
         
     } catch (error) {
-        console.error('❌ AdsGram SDK başlatılamadı:', error);
-        console.error('🔍 Hata detayları:', {
-            message: error.message,
-            stack: error.stack,
-            windowAdsgram: !!window.Adsgram
-        });
+        console.error('❌ Monetag SDK başlatılamadı:', error);
     }
 }
 
-// Reklam gösterme fonksiyonu
-async function showAd() {
-    console.log('🎬 Reklam gösterme başlatılıyor...');
+// Monetag reklamını preload et
+async function preloadMonetagAd() {
+    if (!monetagReady) {
+        console.error('❌ Monetag SDK henüz hazır değil');
+        return;
+    }
     
-    if (!AdController) {
-        console.error('❌ AdsGram Controller bulunamadı');
-        console.error('🔍 AdController durumu:', AdController);
+    try {
+        console.log('📦 Monetag reklamı preload ediliyor...');
+        await window.show_9499819({ 
+            type: 'preload', 
+            ymid: generateUserId() 
+        });
+        monetagPreloaded = true;
+        console.log('✅ Monetag reklamı preload edildi');
+    } catch (error) {
+        console.error('❌ Monetag reklamı preload edilemedi:', error);
+    }
+}
+
+// Kullanıcı ID'si oluştur
+function generateUserId() {
+    // Telegram user ID varsa onu kullan
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+        return `tg_${window.Telegram.WebApp.initDataUnsafe.user.id}`;
+    }
+    
+    // Session ID kullan
+    if (!window.sessionUserId) {
+        window.sessionUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    return window.sessionUserId;
+}
+
+// Monetag reklamını göster
+async function showMonetagAd() {
+    if (!monetagReady) {
+        console.error('❌ Monetag SDK henüz hazır değil');
         return false;
     }
     
-    console.log('✅ AdController bulundu, reklam gösteriliyor...');
-    
     try {
-        console.log('📺 Reklam yükleniyor...');
-        const result = await AdController.show();
+        console.log('📺 Monetag reklamı gösteriliyor...');
+        const userId = generateUserId();
         
-        console.log('📊 Reklam sonucu:', result);
-        console.log('📈 Reklam durumu:', {
-            done: result.done,
-            description: result.description,
-            state: result.state,
-            error: result.error
+        const result = await window.show_9499819({ 
+            ymid: userId 
         });
         
-        if (result.done) {
-            console.log('✅ Kullanıcı reklamı tamamladı');
-            return true;
-        } else {
-            console.log('❌ Kullanıcı reklamı tamamlamadı');
-            return false;
-        }
+        console.log('✅ Monetag reklamı başarıyla tamamlandı');
+        console.log('👤 User ID:', userId);
+        
+        return true;
     } catch (error) {
-        console.error('❌ Reklam gösterme hatası:', error);
-        console.error('🔍 Hata detayları:', {
-            message: error.message,
-            stack: error.stack,
-            type: error.constructor.name
-        });
+        console.error('❌ Monetag reklamı gösterilemedi:', error);
         return false;
     }
 }
@@ -421,9 +448,9 @@ document.querySelectorAll('.unlock-btn').forEach(btn => {
 function showAdModal() {
     console.log('🎬 showAdModal çağrıldı');
     
-    // Direkt AdsGram reklamını göster, modal gösterme
-    console.log('🔄 Direkt AdsGram reklamı gösteriliyor...');
-    showAdsGramAd();
+    // Direkt Monetag reklamını göster, modal gösterme
+    console.log('🔄 Direkt Monetag reklamı gösteriliyor...');
+    handleMonetagAd();
 }
 
 // Hide Ad Modal
@@ -434,11 +461,11 @@ function hideAdModal() {
     }
 }
 
-// Show AdsGram Ad
-async function showAdsGramAd() {
+// Show Monetag Ad (Modal handler)
+async function handleMonetagAd() {
     try {
-        // AdsGram reklamını göster
-        const adWatched = await showAd();
+        // Monetag reklamını göster
+        const adWatched = await showMonetagAd();
         
         if (adWatched) {
             // Kullanıcı reklamı tamamladı
@@ -719,4 +746,5 @@ if (tg) {
     // tg.MainButton.show();
 }
 
+console.log('VPN Script Hub loaded successfully!'); 
 console.log('VPN Script Hub loaded successfully!'); 
