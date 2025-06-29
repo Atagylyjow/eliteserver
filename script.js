@@ -128,7 +128,38 @@ function getUserId() {
         return userId;
     }
     
+    // Try alternative methods to get user ID
+    if (tg && tg.initData) {
+        try {
+            const urlParams = new URLSearchParams(tg.initData);
+            const userData = urlParams.get('user');
+            if (userData) {
+                const user = JSON.parse(decodeURIComponent(userData));
+                if (user.id) {
+                    userId = user.id.toString();
+                    console.log('✅ Telegram User ID (alternative method):', userId);
+                    return userId;
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Alternative user ID method failed:', error);
+        }
+    }
+    
+    // If still no user ID, try to get from query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryUserId = urlParams.get('user_id') || urlParams.get('user');
+    if (queryUserId) {
+        userId = queryUserId.toString();
+        console.log('✅ User ID from query parameters:', userId);
+        return userId;
+    }
+    
     console.warn('⚠️ Telegram User ID alınamadı, "anonymous" kullanılacak.');
+    console.log('🔍 Telegram WebApp objesi:', tg);
+    console.log('🔍 initDataUnsafe:', tg?.initDataUnsafe);
+    console.log('🔍 initData:', tg?.initData);
+    
     return 'anonymous';
 }
 
@@ -137,7 +168,9 @@ async function loadUserCoins() {
     try {
         const currentUserId = getUserId();
         if (currentUserId === 'anonymous') {
-            console.log('Kullanıcı kimliği henüz hazır değil, coin yükleme erteleniyor.');
+            console.log('⚠️ Anonymous kullanıcı, coin yükleme atlanıyor.');
+            userCoins = 0;
+            updateCoinDisplay();
             return;
         }
         
@@ -151,9 +184,13 @@ async function loadUserCoins() {
             console.log('✅ Coinler yüklendi:', userCoins);
         } else {
             console.error(`❌ Coin yükleme hatası: ${response.status}`);
+            userCoins = 0;
+            updateCoinDisplay();
         }
     } catch (error) {
         console.error('❌ Coin yüklenirken bir istisna oluştu:', error);
+        userCoins = 0;
+        updateCoinDisplay();
     }
 }
 
@@ -191,9 +228,16 @@ function updateButtonStates() {
 // Add coins to user
 async function addCoins(amount) {
     try {
+        // Check if user is anonymous
+        const currentUserId = getUserId();
+        if (currentUserId === 'anonymous') {
+            showNotification('❌ Telegram WebApp üzerinden erişim gereklidir. Lütfen Telegram bot üzerinden uygulamayı açın.', 'error');
+            return;
+        }
+        
         // Ensure userId is set
         if (!userId) {
-            userId = getUserId();
+            userId = currentUserId;
         }
         
         console.log('💰 Coin ekleniyor:', { userId, amount });
@@ -316,6 +360,13 @@ async function downloadScript(scriptName) {
     try {
         console.log(`🔽 '${scriptName}' scripti işleniyor...`);
         
+        // Check if user is anonymous
+        const currentUserId = getUserId();
+        if (currentUserId === 'anonymous') {
+            showNotification('❌ Telegram WebApp üzerinden erişim gereklidir. Lütfen Telegram bot üzerinden uygulamayı açın.', 'error');
+            return;
+        }
+        
         // Get the price from the button
         const button = document.querySelector(`[data-script="${scriptName}"]`);
         const price = parseInt(button.getAttribute('data-price')) || 5;
@@ -335,7 +386,7 @@ async function downloadScript(scriptName) {
         const response = await fetch(`${API_BASE_URL}/download/${scriptName}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: getUserId() })
+            body: JSON.stringify({ userId: currentUserId })
         });
 
         if (!response.ok) {
@@ -380,9 +431,15 @@ async function downloadScript(scriptName) {
 // Deduct coins from user
 async function deductCoins(amount) {
     try {
+        // Check if user is anonymous
+        const currentUserId = getUserId();
+        if (currentUserId === 'anonymous') {
+            throw new Error('Telegram WebApp üzerinden erişim gereklidir');
+        }
+        
         // Ensure userId is set
         if (!userId) {
-            userId = getUserId();
+            userId = currentUserId;
         }
         
         console.log('💰 Coin düşülüyor:', { userId, amount });
