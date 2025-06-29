@@ -1,0 +1,58 @@
+{
+  "stats": {
+    "totalDownloads": 7,
+    "activeUsers": 0,
+    "darktunnelDownloads": 1,
+    "httpcustomDownloads": 3,
+    "npvtunnelDownloads": 3,
+    "shadowsocksDownloads": 0,
+    "lastUpdated": "2025-06-29T21:57:35.500Z"
+  },
+  "users": {
+    "anonymous": {
+      "downloads": 0,
+      "firstSeen": "2025-06-29T21:49:23.563Z",
+      "coins": 4
+    },
+    "7749779502": {
+      "downloads": 2,
+      "firstSeen": "2025-06-29T21:50:18.970Z",
+      "coins": 0,
+      "lastDownload": "2025-06-29T21:50:21.817Z"
+    }
+  },
+  "admins": [
+    7749779502
+  ],
+  "vpnScripts": {
+    "darktunnel": {
+      "name": "DarkTunnel",
+      "description": "Gelişmiş tünel teknolojisi ile güvenli bağlantı",
+      "content": "# DarkTunnel VPN Configuration\n# Server: premium.darktunnel.com\n# Port: 443\n# Protocol: TLS\n\n[General]\nloglevel = notify\ninterface = 127.0.0.1\nport = 1080\nsocks-interface = 127.0.0.1\nsocks-port = 1081\nhttp-interface = 127.0.0.1\nhttp-port = 1082\n\n[Proxy]\nType = Shadowsocks\nServer = premium.darktunnel.com\nPort = 443\nMethod = chacha20-ietf-poly1305\nPassword = your_password_here\n\n[Proxy Group]\nProxy = select, auto, fallback\nauto = url-test, server-tcp, url = http://www.gstatic.com/generate_204\nfallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204\n\n[Rule]\nDOMAIN-SUFFIX,google.com,Proxy\nDOMAIN-SUFFIX,facebook.com,Proxy\nDOMAIN-SUFFIX,twitter.com,Proxy\nDOMAIN-SUFFIX,instagram.com,Proxy\nDOMAIN-SUFFIX,youtube.com,Proxy\nDOMAIN-SUFFIX,netflix.com,Proxy\nGEOIP,CN,DIRECT\nFINAL,DIRECT",
+      "filename": "darktunnel.conf",
+      "enabled": true
+    },
+    "httpcustom": {
+      "name": "HTTP Custom",
+      "description": "HTTP/HTTPS protokolü ile özelleştirilebilir bağlantı",
+      "content": "# HTTP Custom Configuration\n# Server: http-custom.example.com\n# Port: 80\n# Protocol: HTTP\n\n[General]\nloglevel = notify\ninterface = 127.0.0.1\nport = 1080\nsocks-interface = 127.0.0.1\nsocks-port = 1081\nhttp-interface = 127.0.0.1\nhttp-port = 1082\n\n[Proxy]\nType = HTTP\nServer = http-custom.example.com\nPort = 80\nUsername = your_username\nPassword = your_password\n\n[Proxy Group]\nProxy = select, auto, fallback\nauto = url-test, server-tcp, url = http://www.gstatic.com/generate_204\nfallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204\n\n[Rule]\nDOMAIN-SUFFIX,google.com,Proxy\nDOMAIN-SUFFIX,facebook.com,Proxy\nDOMAIN-SUFFIX,twitter.com,Proxy\nDOMAIN-SUFFIX,instagram.com,Proxy\nDOMAIN-SUFFIX,youtube.com,Proxy\nDOMAIN-SUFFIX,netflix.com,Proxy\nGEOIP,CN,DIRECT\nFINAL,DIRECT",
+      "filename": "httpcustom.conf",
+      "enabled": true
+    },
+    "npvtunnel": {
+      "name": "NPV Tunnel",
+      "description": "Gelişmiş tünel teknolojisi ile hızlı ve güvenli bağlantı",
+      "content": "# NPV Tunnel Configuration\n# Server: npv-tunnel.example.com\n# Port: 443\n# Protocol: TLS\n\n[General]\nloglevel = notify\ninterface = 127.0.0.1\nport = 1080\nsocks-interface = 127.0.0.1\nsocks-port = 1081\nhttp-interface = 127.0.0.1\nhttp-port = 1082\n\n[Proxy]\nType = Shadowsocks\nServer = npv-tunnel.example.com\nPort = 443\nMethod = aes-256-gcm\nPassword = your_password_here\n\n[Proxy Group]\nProxy = select, auto, fallback\nauto = url-test, server-tcp, url = http://www.gstatic.com/generate_204\nfallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204\n\n[Rule]\nDOMAIN-SUFFIX,google.com,Proxy\nDOMAIN-SUFFIX,facebook.com,Proxy\nDOMAIN-SUFFIX,twitter.com,Proxy\nDOMAIN-SUFFIX,instagram.com,Proxy\nDOMAIN-SUFFIX,youtube.com,Proxy\nDOMAIN-SUFFIX,netflix.com,Proxy\nGEOIP,CN,DIRECT\nFINAL,DIRECT",
+      "filename": "npvtunnel.conf",
+      "enabled": true
+    },
+    "shadowsocks": {
+      "name": "Shadowsocks",
+      "description": "Güvenli proxy protokolü ile şifreli bağlantı",
+      "content": "# Shadowsocks Configuration\n# Server: ss-server.example.com\n# Port: 8388\n# Method: aes-256-gcm\n# Password: your_password_here\n\n{\n  \"server\": \"ss-server.example.com\",\n  \"server_port\": 8388,\n  \"password\": \"your_password_here\",\n  \"method\": \"aes-256-gcm\",\n  \"timeout\": 300,\n  \"fast_open\": false,\n  \"reuse_port\": true,\n  \"local_address\": \"127.0.0.1\",\n  \"local_port\": 1080,\n  \"mode\": \"tcp_and_udp\"\n}",
+      "filename": "shadowsocks.json",
+      "enabled": true,
+      "showConfig": true
+    }
+  }
+}

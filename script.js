@@ -4,6 +4,14 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // Telegram Web App Integration
 let tg = null;
 
+// DOM Elements
+let userCoinsElement = null;
+let addCoinsBtn = null;
+let coinModal = null;
+let coinModalClose = null;
+let watchAdBtn = null;
+let themeToggle = null;
+
 // Wait for Telegram WebApp to load
 function initializeTelegramWebApp() {
     console.log('🚀 initializeTelegramWebApp başlatılıyor...');
@@ -29,10 +37,10 @@ function initializeTelegramWebApp() {
             console.log('🎨 Tema:', theme);
             document.documentElement.setAttribute('data-theme', theme);
             
-            // Update theme toggle icon
-            const themeToggle = document.getElementById('theme-toggle');
-            if (themeToggle) {
-                themeToggle.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            // Update theme toggle icon - only if element exists
+            const themeToggleElement = document.getElementById('theme-toggle');
+            if (themeToggleElement) {
+                themeToggleElement.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
                 console.log('✅ Tema toggle güncellendi');
             }
             
@@ -186,93 +194,68 @@ async function addCoins(amount) {
     }
 }
 
-// Event Listeners
-if (themeToggle) {
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+// Watch Ad Function
+async function watchAd() {
+    if (!watchAdBtn) {
+        console.error('❌ Watch ad button not found');
+        return;
+    }
+
+    watchAdBtn.disabled = true;
+    watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
+
+    try {
+        console.log('🎬 Reklam izleme başlatılıyor...');
         
-        document.documentElement.setAttribute('data-theme', newTheme);
+        // Show the rewarded popup ad
+        await showRewardedPopupAd();
         
-        // Update icon
-        themeToggle.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        // Add coins after successful ad view
+        await addCoins(1);
         
-        // Save theme preference
-        localStorage.setItem('theme', newTheme);
-        
-        // Update Telegram Web App theme
-        if (tg) {
-            tg.setHeaderColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
-            tg.setBackgroundColor(newTheme === 'dark' ? '#1a1a1a' : '#ffffff');
+        // Close the modal
+        if (coinModal) {
+            coinModal.style.display = 'none';
         }
-    });
-}
-
-// Coin modal event listeners
-if (addCoinsBtn) {
-    addCoinsBtn.addEventListener('click', () => {
-        if (coinModal) coinModal.style.display = 'block';
-    });
-}
-
-if (coinModalClose) {
-    coinModalClose.addEventListener('click', () => {
-        if (coinModal) coinModal.style.display = 'none';
-    });
-}
-
-if (watchAdBtn) {
-    watchAdBtn.addEventListener('click', async () => {
-        watchAdBtn.disabled = true;
-        watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
         
-        try {
-            // Ensure userId is set before showing the ad
-            if (!userId) {
-                userId = getUserId();
-            }
-            
-            // Show the Rewarded Popup ad
-            await showRewardedPopupAd();
-            
-            // If the ad was shown successfully, add 1 coin
-            await addCoins(1);
-            
-            // Close the modal
-            if (coinModal) {
-                coinModal.style.display = 'none';
-            }
-            
-        } catch (error) {
-            console.error('❌ Reklam izleme hatası:', error);
-            showNotification(`❌ Reklam hatası: ${error.message}`, 'error');
-        } finally {
-            watchAdBtn.disabled = false;
-            watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
-        }
-    });
+        console.log('✅ Reklam izleme tamamlandı ve coin eklendi');
+        
+    } catch (error) {
+        console.error('❌ Reklam izleme hatası:', error);
+        showNotification('❌ Reklam izlenemedi: ' + error.message, 'error');
+    } finally {
+        watchAdBtn.disabled = false;
+        watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
+    }
 }
 
 // Show Monetag Rewarded Popup Ad
 function showRewardedPopupAd() {
     return new Promise((resolve, reject) => {
-        // Check if Monetag SDK is loaded
-        if (typeof window.show_9499819 !== 'function') {
-            return reject(new Error('Monetag SDK yüklenemedi. Lütfen sayfayı yenileyin.'));
-        }
-        
+        // Get user ID for tracking
         const ymid = getUserId();
+        
         console.log('🎬 Monetag Rewarded Popup reklamı gösteriliyor...', { ymid });
         
-        window.show_9499819({ type: 'pop', ymid: ymid, requestVar: 'coin-earning' })
-            .then(() => {
-                console.log('✅ Rewarded Popup reklamı başarıyla tetiklendi.');
-                resolve();
-            })
-            .catch((error) => {
-                console.error('❌ Rewarded Popup reklamı hatası:', error);
-                reject(new Error('Reklam gösterilemedi veya engellendi.'));
-            });
+        // Check if Monetag SDK is loaded
+        if (typeof window.show_9499819 !== 'function') {
+            console.error('❌ Monetag SDK yüklenmedi');
+            reject(new Error('Reklam sistemi yüklenmedi'));
+            return;
+        }
+        
+        // Show the rewarded popup ad
+        window.show_9499819({ 
+            type: 'pop',
+            ymid: ymid,
+            requestVar: 'coin-earning'
+        }).then(() => {
+            console.log('✅ Rewarded Popup reklamı başarıyla tamamlandı');
+            resolve();
+        }).catch((error) => {
+            console.error('❌ Rewarded Popup reklamı hatası:', error);
+            reject(new Error('Reklam gösterilemedi'));
+        });
     });
 }
 
@@ -280,13 +263,16 @@ function showRewardedPopupAd() {
 
 // Toggle dark/light mode
 function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     
     document.documentElement.setAttribute('data-theme', newTheme);
     
-    // Update icon
-    themeToggle.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    // Update icon - only if element exists and is properly initialized
+    const themeToggleElement = document.getElementById('theme-toggle');
+    if (themeToggleElement) {
+        themeToggleElement.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
     
     // Save theme preference
     localStorage.setItem('theme', newTheme);
@@ -460,6 +446,78 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+// Initialize DOM elements
+function initializeDOMElements() {
+    userCoinsElement = document.getElementById('user-coins');
+    addCoinsBtn = document.getElementById('add-coins-btn');
+    coinModal = document.getElementById('coin-modal');
+    coinModalClose = document.getElementById('coin-modal-close');
+    watchAdBtn = document.getElementById('watch-ad-btn');
+    themeToggle = document.getElementById('theme-toggle');
+    
+    console.log('🔧 DOM elementleri başlatıldı:', {
+        userCoinsElement: !!userCoinsElement,
+        addCoinsBtn: !!addCoinsBtn,
+        coinModal: !!coinModal,
+        coinModalClose: !!coinModalClose,
+        watchAdBtn: !!watchAdBtn,
+        themeToggle: !!themeToggle
+    });
+}
+
+// Setup event listeners
+function setupEventListeners() {
+    console.log('🔧 Event listener\'lar kuruluyor...');
+    
+    // Theme toggle
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+        console.log('✅ Theme toggle listener eklendi');
+    }
+
+    // Coin modal event listeners
+    if (addCoinsBtn) {
+        addCoinsBtn.addEventListener('click', () => {
+            if (coinModal) {
+                coinModal.style.display = 'block';
+                console.log('✅ Coin modal açıldı');
+            }
+        });
+        console.log('✅ Add coins button listener eklendi');
+    }
+
+    if (coinModalClose) {
+        coinModalClose.addEventListener('click', () => {
+            if (coinModal) {
+                coinModal.style.display = 'none';
+                console.log('✅ Coin modal kapatıldı');
+            }
+        });
+        console.log('✅ Coin modal close listener eklendi');
+    }
+
+    // Watch ad button
+    if (watchAdBtn) {
+        watchAdBtn.addEventListener('click', watchAd);
+        console.log('✅ Watch ad button listener eklendi');
+    }
+    
+    // Download button listeners using event delegation
+    document.body.addEventListener('click', function(e) {
+        const button = e.target.closest('.unlock-btn');
+        if (button) {
+            e.preventDefault();
+            const scriptName = button.getAttribute('data-script');
+            if (scriptName) {
+                console.log(`🔽 Script indirme isteği: ${scriptName}`);
+                downloadScript(scriptName);
+            }
+        }
+    });
+    
+    console.log('✅ Tüm event listener\'lar kuruldu');
+}
+
 // Add some interactive effects
 document.querySelectorAll('.script-card').forEach(card => {
     card.addEventListener('mouseenter', () => {
@@ -524,105 +582,42 @@ document.querySelectorAll('.script-card, .instruction-step').forEach(el => {
     observer.observe(el);
 });
 
-// Initialize Telegram Web App settings
-if (tg) {
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM yüklendi, uygulama başlatılıyor...');
+    
+    // Initialize DOM elements first
+    initializeDOMElements();
+    
+    // Wait for Telegram WebApp to be fully ready
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+    }
+    
+    // Initialize our application
+    initializeTelegramWebApp();
+    
+    // Set up event listeners
+    setupEventListeners();
+    
+    // Now that the app is ready, get the user ID and load coins
+    userId = getUserId();
+    loadUserCoins();
+    
+    console.log('✅ Uygulama başlatma tamamlandı');
+});
+
+// Initialize Telegram Web App settings - only if tg exists
+if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+    const tg = window.Telegram.WebApp;
+    
     // Set initial colors
-    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     tg.setHeaderColor(currentTheme === 'dark' ? '#1a1a1a' : '#ffffff');
     tg.setBackgroundColor(currentTheme === 'dark' ? '#1a1a1a' : '#ffffff');
     
     // Enable closing confirmation
     tg.enableClosingConfirmation();
-}
-
-// ---- APP INITIALIZATION ----
-// Since the script is at the end of the body, the DOM is already loaded.
-// We don't need DOMContentLoaded.
-
-console.log('🚀 Uygulama başlatılıyor...');
-
-// 1. Initialize Telegram environment
-initializeTelegramWebApp();
-
-// 2. A small delay to ensure the Telegram WebApp object is fully available
-setTimeout(() => {
-    console.log('⏳ Gecikmeli başlatma: ID alınıyor ve listener\'lar kuruluyor.');
-    
-    // 3. Get User ID and Load Coins
-    userId = getUserId();
-    loadUserCoins();
-    
-    // 4. Set up all event listeners for buttons, etc.
-    setupEventListeners();
-    
-    console.log('✅ Uygulama tamamen başlatıldı.');
-}, 100); // 100ms delay to give Telegram's script time to initialize.
-
-function setupEventListeners() {
-    console.log('🔧 Olay dinleyicileri (event listeners) kuruluyor...');
-    
-    const themeToggle = document.getElementById('theme-toggle');
-    const addCoinsBtn = document.getElementById('add-coins-btn');
-    const coinModal = document.getElementById('coin-modal');
-    const coinModalClose = document.querySelector('.coin-modal .modal-close');
-    const watchAdBtn = document.getElementById('watch-ad-btn');
-    
-    // Theme Toggle
-    if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
-        console.log('✅ Tema değiştirme butonu dinleyicisi kuruldu.');
-    }
-    
-    // Coin modal event listeners
-    if (addCoinsBtn) {
-        addCoinsBtn.addEventListener('click', () => {
-            if (coinModal) coinModal.style.display = 'block';
-        });
-        console.log('✅ Coin ekle butonu dinleyicisi kuruldu.');
-    }
-    
-    if (coinModalClose) {
-        coinModalClose.addEventListener('click', () => {
-            if (coinModal) coinModal.style.display = 'none';
-        });
-        console.log('✅ Coin modal kapatma butonu dinleyicisi kuruldu.');
-    }
-    
-    if (watchAdBtn) {
-        watchAdBtn.addEventListener('click', async () => {
-            watchAdBtn.disabled = true;
-            watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
-            
-            try {
-                if (!userId) userId = getUserId();
-                await showRewardedPopupAd();
-                await addCoins(1);
-                if (coinModal) coinModal.style.display = 'none';
-            } catch (error) {
-                console.error('❌ Reklam izleme hatası:', error);
-                showNotification(`❌ Reklam hatası: ${error.message}`, 'error');
-            } finally {
-                watchAdBtn.disabled = false;
-                watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
-            }
-        });
-        console.log('✅ Reklam izle butonu dinleyicisi kuruldu.');
-    }
-    
-    // Download button listeners using event delegation
-    document.body.addEventListener('click', function(e) {
-        const button = e.target.closest('.unlock-btn');
-        if (button) {
-            e.preventDefault();
-            const scriptName = button.getAttribute('data-script');
-            if (scriptName) {
-                downloadScript(scriptName);
-            }
-        }
-    });
-    console.log('✅ İndirme butonları için genel dinleyici kuruldu.');
-    
-    console.log('🔧 Tüm olay dinleyicileri başarıyla kuruldu.');
 }
 
 console.log('VPN Script Hub loaded successfully!'); 
