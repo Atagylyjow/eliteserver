@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="monetag" content="2b2e838df61d3b6ab828bbe4bc92c4b2">
 </head>
 <body>
     <div class="app-container">
@@ -19,6 +20,15 @@
                 <div class="logo">
                     <i class="fas fa-shield-alt"></i>
                     <span>VPN Script Hub</span>
+                </div>
+                <div class="coin-system">
+                    <div class="coin-display">
+                        <i class="fas fa-coins"></i>
+                        <span id="user-coins">0</span>
+                    </div>
+                    <button class="coin-add-btn" id="add-coins-btn">
+                        <i class="fas fa-plus"></i>
+                    </button>
                 </div>
                 <div class="theme-toggle">
                     <i class="fas fa-moon" id="theme-toggle"></i>
@@ -36,20 +46,6 @@
                     </div>
                     <h1>VPN Script Hub'a Hoş Geldiniz</h1>
                     <p>Güvenli ve hızlı VPN scriptlerini edinin</p>
-                    <div class="stats">
-                        <div class="stat-item">
-                            <span class="stat-number" id="total-downloads">1,234</span>
-                            <span class="stat-label">Toplam İndirme</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number" id="active-users">567</span>
-                            <span class="stat-label">Aktif Kullanıcı</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-number" id="total-users">890</span>
-                            <span class="stat-label">Toplam Kullanıcı</span>
-                        </div>
-                    </div>
                 </div>
             </section>
 
@@ -124,6 +120,35 @@
                 </div>
             </section>
         </main>
+
+        <!-- Coin Earning Modal -->
+        <div class="modal" id="coin-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Coin Kazan</h3>
+                    <button class="modal-close" id="coin-modal-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="coin-earning-info">
+                        <div class="coin-earning-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <h4>Reklam İzleyerek Coin Kazanın</h4>
+                        <p>Kısa bir reklam izleyerek 10 coin kazanabilirsiniz!</p>
+                        <div class="coin-reward">
+                            <span class="reward-amount">+10</span>
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <button class="btn btn-success" id="watch-ad-btn">
+                            <i class="fas fa-play"></i>
+                            Reklam İzle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>

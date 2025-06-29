@@ -46,10 +46,6 @@ function initializeTelegramWebApp() {
         document.documentElement.setAttribute('data-theme', 'light');
     }
     
-    console.log('📊 İstatistikler yükleniyor...');
-    // Load initial stats
-    loadStats();
-    
     console.log('👁️ App container kontrol ediliyor...');
     // Show main content
     const appContainer = document.querySelector('.app-container');
@@ -91,74 +87,6 @@ function initializeTelegramWebApp() {
     console.log('🎉 initializeTelegramWebApp tamamlandı');
 }
 
-// Load real-time stats from backend
-async function loadStats() {
-    try {
-        console.log('📊 Backend\'den istatistikler yükleniyor...');
-        
-        const response = await fetch(`${API_BASE_URL}/stats`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const stats = await response.json();
-        console.log('📈 Backend istatistikleri:', stats);
-        
-        // Gerçek verileri kullan
-        downloadCount = stats.totalDownloads || 0;
-        activeUsers = stats.activeUsers || 0;
-        const totalUsers = stats.totalUsers || 0;
-        
-        // UI'yi güncelle
-        if (totalDownloadsElement) {
-            totalDownloadsElement.textContent = downloadCount.toLocaleString();
-        }
-        if (activeUsersElement) {
-            activeUsersElement.textContent = activeUsers.toLocaleString();
-        }
-        
-        // Toplam kullanıcı sayısını da göster (yeni element ekleyelim)
-        const totalUsersElement = document.getElementById('total-users');
-        if (totalUsersElement) {
-            totalUsersElement.textContent = totalUsers.toLocaleString();
-        }
-        
-        console.log('✅ İstatistikler backend\'den yüklendi:', {
-            downloads: downloadCount,
-            activeUsers: activeUsers,
-            totalUsers: totalUsers
-        });
-        
-    } catch (error) {
-        console.error('❌ Backend\'den istatistikler yüklenirken hata:', error);
-        console.log('🔄 Fallback değerleri kullanılıyor...');
-        
-        // Fallback: gerçekçi değerler
-        downloadCount = Math.floor(Math.random() * 2000) + 1500; // 1500-3500 arası
-        activeUsers = Math.floor(Math.random() * 200) + 150; // 150-350 arası
-        const totalUsers = Math.floor(Math.random() * 500) + 800; // 800-1300 arası
-        
-        if (totalDownloadsElement) {
-            totalDownloadsElement.textContent = downloadCount.toLocaleString();
-        }
-        if (activeUsersElement) {
-            activeUsersElement.textContent = activeUsers.toLocaleString();
-        }
-        
-        // Toplam kullanıcı sayısını da göster
-        const totalUsersElement = document.getElementById('total-users');
-        if (totalUsersElement) {
-            totalUsersElement.textContent = totalUsers.toLocaleString();
-        }
-        
-        console.log('✅ Fallback istatistikleri yüklendi:', {
-            downloads: downloadCount,
-            activeUsers: activeUsers,
-            totalUsers: totalUsers
-        });
-    }
-}
-
 // Send data to Telegram bot
 function sendDataToBot(data) {
     if (tg && tg.sendData) {
@@ -183,27 +111,72 @@ if (document.readyState === 'loading') {
 // Also try to initialize after a short delay (in case Telegram WebApp loads later)
 setTimeout(initializeTelegramWebApp, 1000);
 
-// Periyodik istatistik güncellemesi
-setInterval(updateStats, 30000); // Her 30 saniyede bir güncelle
-
 // UI Elements
-const totalDownloadsElement = document.getElementById('total-downloads');
-const activeUsersElement = document.getElementById('active-users');
 const themeToggle = document.getElementById('theme-toggle');
-const scriptFilter = document.getElementById('script-filter');
-const searchInput = document.getElementById('search-input');
-const scriptList = document.getElementById('script-list');
-const downloadModal = document.getElementById('download-modal');
-const closeModal = document.querySelector('.close-button');
-const finalDownloadButton = document.getElementById('final-download-button');
-const adCountdown = document.getElementById('ad-countdown');
-const adContainer = document.getElementById('ad-container');
+const coinModal = document.getElementById('coin-modal');
+const coinModalClose = document.getElementById('coin-modal-close');
+const addCoinsBtn = document.getElementById('add-coins-btn');
+const watchAdBtn = document.getElementById('watch-ad-btn');
+const userCoinsElement = document.getElementById('user-coins');
 
 // State
-let scripts = [];
-let downloadCount = 1783;
-let activeUsers = 234;
 let currentScript = null;
+let userCoins = 0;
+let userId = null;
+
+// Get user ID
+function getUserId() {
+    if (tg?.initDataUnsafe?.user?.id) {
+        return tg.initDataUnsafe.user.id.toString();
+    }
+    return 'anonymous';
+}
+
+// Load user coins
+async function loadUserCoins() {
+    try {
+        userId = getUserId();
+        const response = await fetch(`${API_BASE_URL}/user/${userId}/coins`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            userCoins = data.coins;
+            updateCoinDisplay();
+        }
+    } catch (error) {
+        console.error('❌ Coin yüklenirken hata:', error);
+    }
+}
+
+// Update coin display
+function updateCoinDisplay() {
+    if (userCoinsElement) {
+        userCoinsElement.textContent = userCoins;
+    }
+}
+
+// Add coins to user
+async function addCoins(amount) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/user/${userId}/add-coins`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ amount })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            userCoins = data.coins;
+            updateCoinDisplay();
+            showNotification(`✅ ${amount} coin kazandınız!`, 'success');
+        }
+    } catch (error) {
+        console.error('❌ Coin eklenirken hata:', error);
+        showNotification('❌ Coin eklenemedi', 'error');
+    }
+}
 
 // Event Listeners
 if (themeToggle) {
@@ -227,8 +200,79 @@ if (themeToggle) {
     });
 }
 
-if (event.target == downloadModal) {
-    hideDownloadModal();
+// Coin modal event listeners
+if (addCoinsBtn) {
+    addCoinsBtn.addEventListener('click', () => {
+        if (coinModal) {
+            coinModal.style.display = 'block';
+        }
+    });
+}
+
+if (coinModalClose) {
+    coinModalClose.addEventListener('click', () => {
+        if (coinModal) {
+            coinModal.style.display = 'none';
+        }
+    });
+}
+
+if (watchAdBtn) {
+    watchAdBtn.addEventListener('click', async () => {
+        watchAdBtn.disabled = true;
+        watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
+        
+        try {
+            // Simulate ad watching (replace with actual ad integration)
+            await simulateAdWatch();
+            
+            // Add coins after successful ad watch
+            await addCoins(10);
+            
+            // Close modal
+            if (coinModal) {
+                coinModal.style.display = 'none';
+            }
+            
+        } catch (error) {
+            console.error('❌ Reklam izleme hatası:', error);
+            showNotification('❌ Reklam izlenemedi', 'error');
+        } finally {
+            watchAdBtn.disabled = false;
+            watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
+        }
+    });
+}
+
+// Simulate ad watching
+function simulateAdWatch() {
+    return new Promise((resolve, reject) => {
+        let progress = 0;
+        const duration = 5000; // 5 seconds
+        const interval = 100; // Update every 100ms
+        
+        watchAdBtn.innerHTML = `<i class="fas fa-play"></i> Reklam İzleniyor... (${Math.round(progress)}%)`;
+        
+        const timer = setInterval(() => {
+            progress += (interval / duration) * 100;
+            
+            if (progress >= 100) {
+                clearInterval(timer);
+                resolve();
+            } else {
+                watchAdBtn.innerHTML = `<i class="fas fa-play"></i> Reklam İzleniyor... (${Math.round(progress)}%)`;
+            }
+        }, interval);
+        
+        // Allow user to cancel
+        const cancelHandler = () => {
+            clearInterval(timer);
+            reject(new Error('Reklam iptal edildi'));
+        };
+        
+        // Add cancel functionality (optional)
+        // watchAdBtn.addEventListener('click', cancelHandler, { once: true });
+    });
 }
 
 // Functions
@@ -253,30 +297,6 @@ function toggleTheme() {
     }
 }
 
-// Filter and search scripts
-function filterScripts() {
-    const searchValue = searchInput.value.toLowerCase();
-    const filteredScripts = scripts.filter(script =>
-        script.name.toLowerCase().includes(searchValue) ||
-        script.description.toLowerCase().includes(searchValue)
-    );
-
-    displayScripts(filteredScripts);
-}
-
-// Show download confirmation modal
-function showDownloadModal(script) {
-    currentScript = script;
-    downloadScript(script)
-}
-
-// Hide download confirmation modal
-function hideDownloadModal() {
-    if (downloadModal) {
-        downloadModal.style.display = 'none';
-    }
-}
-
 // Download Script Function
 async function downloadScript(scriptName) {
     try {
@@ -289,7 +309,7 @@ async function downloadScript(scriptName) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                userId: tg?.initDataUnsafe?.user?.id || 'anonymous'
+                userId: getUserId()
             })
         });
 
@@ -304,11 +324,14 @@ async function downloadScript(scriptName) {
 
         if (data.url) {
             // Tarayıcıda indirme başlat
-            window.location.href = data.url;
+            const link = document.createElement('a');
+            link.href = data.url;
+            link.download = data.script.filename || `${scriptName}.conf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
             showNotification(`✅ '${scriptName}' başarıyla indirildi!`, 'success');
-
-            // İstatistikleri güncelle
-            updateStats(true);
         } else {
             throw new Error('İndirme URL\'si alınamadı.');
         }
@@ -364,84 +387,6 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Update Stats Periodically
-async function updateStats(isDownload = false) {
-    try {
-        console.log('📊 İstatistikler güncelleniyor...');
-        
-        const response = await fetch(`${API_BASE_URL}/stats`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const stats = await response.json();
-        
-        // Gerçek verileri kullan
-        downloadCount = stats.totalDownloads || 0;
-        activeUsers = stats.activeUsers || 0;
-        const totalUsers = stats.totalUsers || 0;
-        
-        // UI'yi güncelle
-        if (totalDownloadsElement) {
-            totalDownloadsElement.textContent = downloadCount.toLocaleString();
-        }
-        if (activeUsersElement) {
-            activeUsersElement.textContent = activeUsers.toLocaleString();
-        }
-        
-        // Toplam kullanıcı sayısını da göster
-        const totalUsersElement = document.getElementById('total-users');
-        if (totalUsersElement) {
-            totalUsersElement.textContent = totalUsers.toLocaleString();
-        }
-        
-        console.log('✅ İstatistikler güncellendi:', {
-            downloads: downloadCount,
-            activeUsers: activeUsers,
-            totalUsers: totalUsers
-        });
-        
-        // If a download happened, send a message to the bot
-        if (isDownload) {
-            sendDataToBot({
-                type: 'download_success',
-                script: currentScript,
-                downloads: stats.totalDownloads
-            });
-        }
-        
-    } catch (error) {
-        console.error('❌ İstatistikler güncellenirken hata:', error);
-        console.log('🔄 Backend erişilemiyor, mevcut değerler korunuyor...');
-        
-        // Hata durumunda mevcut değerleri koru veya küçük artışlar yap
-        if (downloadCount === 0) {
-            downloadCount = Math.floor(Math.random() * 2000) + 1500;
-        } else {
-            downloadCount += Math.floor(Math.random() * 10) + 1; // Küçük artış
-        }
-        
-        if (activeUsers === 0) {
-            activeUsers = Math.floor(Math.random() * 200) + 150;
-        } else {
-            activeUsers += Math.floor(Math.random() * 5) + 1; // Küçük artış
-        }
-        
-        // UI'yi güncelle
-        if (totalDownloadsElement) {
-            totalDownloadsElement.textContent = downloadCount.toLocaleString();
-        }
-        if (activeUsersElement) {
-            activeUsersElement.textContent = activeUsers.toLocaleString();
-        }
-        
-        console.log('✅ Fallback istatistikleri güncellendi:', {
-            downloads: downloadCount,
-            activeUsers: activeUsers
-        });
-    }
-}
-
 // Add some interactive effects
 document.querySelectorAll('.script-card').forEach(card => {
     card.addEventListener('mouseenter', () => {
@@ -451,13 +396,6 @@ document.querySelectorAll('.script-card').forEach(card => {
     card.addEventListener('mouseleave', () => {
         card.style.transform = 'translateY(0) scale(1)';
     });
-});
-
-// Add keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        hideDownloadModal();
-    }
 });
 
 // Add loading animation for buttons
@@ -522,10 +460,9 @@ if (tg) {
     
     // Enable closing confirmation
     tg.enableClosingConfirmation();
-    
-    // Set main button if needed
-    // tg.MainButton.setText('Ana Menü');
-    // tg.MainButton.show();
 }
+
+// Load user coins on startup
+loadUserCoins();
 
 console.log('VPN Script Hub loaded successfully!'); 

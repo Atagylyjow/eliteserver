@@ -234,42 +234,108 @@ app.get('/api/scripts', (req, res) => {
     res.json(database.vpnScripts);
 });
 
-app.post('/api/download', (req, res) => {
-    const { scriptType, userId } = req.body;
+app.post('/api/download/:scriptName', (req, res) => {
+    const { scriptName } = req.params;
+    const { userId } = req.body;
     
-    debug('Download API called', { scriptType, userId, ip: req.ip });
+    debug('Download API called', { scriptName, userId, ip: req.ip });
     
-    if (database.vpnScripts[scriptType] && database.vpnScripts[scriptType].enabled) {
-        updateStats(scriptType);
+    if (database.vpnScripts[scriptName] && database.vpnScripts[scriptName].enabled) {
+        updateStats(scriptName);
         
         // Kullanıcı istatistiklerini güncelle
         if (!database.users[userId]) {
-            database.users[userId] = { downloads: 0, firstSeen: new Date() };
+            database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
             log('info', 'New user registered', { userId });
         }
         database.users[userId].downloads++;
         database.users[userId].lastDownload = new Date();
         
         log('info', 'Script downloaded successfully', {
-            scriptType,
+            scriptName,
             userId,
             userDownloads: database.users[userId].downloads
         });
         
+        // Script içeriğini blob olarak oluştur ve URL döndür
+        const scriptContent = database.vpnScripts[scriptName].content;
+        const blob = new Blob([scriptContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        
         res.json({
             success: true,
-            script: database.vpnScripts[scriptType],
-            stats: database.stats
+            url: url,
+            script: database.vpnScripts[scriptName]
         });
     } else {
         log('warn', 'Script download failed', {
-            scriptType,
+            scriptName,
             userId,
             reason: 'Script not found or disabled'
         });
         
         res.status(400).json({ success: false, error: 'Script bulunamadı veya devre dışı' });
     }
+});
+
+// Coin sistemi API'leri
+app.get('/api/user/:userId/coins', (req, res) => {
+    const { userId } = req.params;
+    
+    debug('User coins API called', { userId, ip: req.ip });
+    
+    if (!database.users[userId]) {
+        database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
+    }
+    
+    res.json({
+        success: true,
+        coins: database.users[userId].coins || 0
+    });
+});
+
+app.post('/api/user/:userId/add-coins', (req, res) => {
+    const { userId } = req.params;
+    const { amount } = req.body;
+    
+    debug('Add coins API called', { userId, amount, ip: req.ip });
+    
+    if (!database.users[userId]) {
+        database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
+    }
+    
+    database.users[userId].coins = (database.users[userId].coins || 0) + amount;
+    
+    log('info', 'Coins added to user', { userId, amount, newTotal: database.users[userId].coins });
+    
+    res.json({
+        success: true,
+        coins: database.users[userId].coins
+    });
+});
+
+app.post('/api/user/:userId/use-coins', (req, res) => {
+    const { userId } = req.params;
+    const { amount } = req.body;
+    
+    debug('Use coins API called', { userId, amount, ip: req.ip });
+    
+    if (!database.users[userId] || !database.users[userId].coins) {
+        return res.status(400).json({ success: false, error: 'Yetersiz coin' });
+    }
+    
+    if (database.users[userId].coins < amount) {
+        return res.status(400).json({ success: false, error: 'Yetersiz coin' });
+    }
+    
+    database.users[userId].coins -= amount;
+    
+    log('info', 'Coins used by user', { userId, amount, remaining: database.users[userId].coins });
+    
+    res.json({
+        success: true,
+        coins: database.users[userId].coins
+    });
 });
 
 // Yönetici API'leri
