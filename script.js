@@ -1,5 +1,7 @@
-// Backend API URL'si
-const API_BASE_URL = 'http://localhost:3000/api';
+// API Configuration
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3000/api' 
+    : 'https://your-backend-domain.com/api'; // Production backend URL'nizi buraya ekleyin
 
 // Telegram Web App Integration
 let tg = null;
@@ -99,6 +101,7 @@ function initializeTelegramWebApp() {
 async function loadStats() {
     try {
         console.log('📊 Backend\'den istatistikler yükleniyor...');
+        console.log('🔗 API URL:', API_BASE_URL);
         
         const response = await fetch(`${API_BASE_URL}/stats`);
         if (!response.ok) {
@@ -121,7 +124,7 @@ async function loadStats() {
             activeUsersElement.textContent = activeUsers.toLocaleString();
         }
         
-        // Toplam kullanıcı sayısını da göster (yeni element ekleyelim)
+        // Toplam kullanıcı sayısını da göster
         const totalUsersElement = document.getElementById('total-users');
         if (totalUsersElement) {
             totalUsersElement.textContent = totalUsers.toLocaleString();
@@ -135,11 +138,12 @@ async function loadStats() {
         
     } catch (error) {
         console.error('❌ Backend\'den istatistikler yüklenirken hata:', error);
+        console.log('🔄 Fallback değerleri kullanılıyor...');
         
         // Fallback: varsayılan değerler
-        console.log('🔄 Fallback değerleri kullanılıyor...');
-        downloadCount = Math.floor(Math.random() * 1000) + 500;
-        activeUsers = Math.floor(Math.random() * 100) + 50;
+        downloadCount = FALLBACK_STATS.totalDownloads;
+        activeUsers = FALLBACK_STATS.activeUsers;
+        const totalUsers = FALLBACK_STATS.totalUsers;
         
         if (totalDownloadsElement) {
             totalDownloadsElement.textContent = downloadCount.toLocaleString();
@@ -147,6 +151,17 @@ async function loadStats() {
         if (activeUsersElement) {
             activeUsersElement.textContent = activeUsers.toLocaleString();
         }
+        
+        const totalUsersElement = document.getElementById('total-users');
+        if (totalUsersElement) {
+            totalUsersElement.textContent = totalUsers.toLocaleString();
+        }
+        
+        console.log('✅ Fallback istatistikler yüklendi:', {
+            downloads: downloadCount,
+            activeUsers: activeUsers,
+            totalUsers: totalUsers
+        });
     }
 }
 
@@ -282,21 +297,42 @@ function generateUserId() {
 
 // Monetag reklamını göster
 async function showMonetagAd() {
+    console.log('🎬 showMonetagAd() çağrıldı');
+    console.log('🔍 Monetag durumu:', {
+        monetagReady: monetagReady,
+        monetagPreloaded: monetagPreloaded,
+        show_9499819: typeof window.show_9499819,
+        currentScript: currentScript
+    });
+    
     if (!monetagReady) {
         console.error('❌ Monetag SDK henüz hazır değil');
         showNotification('❌ Reklam sistemi henüz hazır değil. Lütfen sayfayı yenileyin.', 'error');
         return false;
     }
     
+    if (!window.show_9499819 || typeof window.show_9499819 !== 'function') {
+        console.error('❌ show_9499819 fonksiyonu bulunamadı');
+        showNotification('❌ Reklam sistemi yüklenemedi. Lütfen sayfayı yenileyin.', 'error');
+        return false;
+    }
+    
     try {
         console.log('📺 Monetag reklamı gösteriliyor...');
         const userId = generateUserId();
+        console.log('👤 User ID:', userId);
+        console.log('📝 Current Script:', currentScript);
+        
+        // Monetag parametreleri
+        const monetagParams = { 
+            ymid: userId,
+            requestVar: currentScript || 'unknown'
+        };
+        
+        console.log('📋 Monetag parametreleri:', monetagParams);
         
         // Monetag'ın önerdiği şekilde .catch() ile hata yakalama
-        const result = await window.show_9499819({ 
-            ymid: userId,
-            requestVar: currentScript // Hangi script için reklam gösterildiğini izle
-        }).catch(error => {
+        const result = await window.show_9499819(monetagParams).catch(error => {
             console.error('❌ Monetag reklamı hatası:', error);
             throw error;
         });
@@ -308,6 +344,12 @@ async function showMonetagAd() {
         return true;
     } catch (error) {
         console.error('❌ Monetag reklamı gösterilemedi:', error);
+        console.error('🔍 Hata detayları:', {
+            error: error.message,
+            stack: error.stack,
+            monetagReady: monetagReady,
+            show_9499819: typeof window.show_9499819
+        });
         showNotification('❌ Reklam gösterilemedi. Lütfen tekrar deneyin.', 'error');
         return false;
     }
@@ -759,25 +801,50 @@ function testMonetagSDK() {
         sdkType: typeof window.show_9499819,
         monetagLoaded: window.monetagLoaded,
         monetagError: window.monetagError,
+        monetagReady: monetagReady,
+        monetagPreloaded: monetagPreloaded,
         telegramWebApp: !!(window.Telegram && window.Telegram.WebApp),
         platform: window.Telegram?.WebApp?.platform || 'unknown',
         version: window.Telegram?.WebApp?.version || 'unknown',
-        isExpanded: window.Telegram?.WebApp?.isExpanded || false
+        isExpanded: window.Telegram?.WebApp?.isExpanded || false,
+        currentScript: currentScript,
+        apiUrl: API_BASE_URL
     };
     
     console.log('📊 Test Sonuçları:', testResults);
     
+    // SDK durumunu kontrol et
     if (testResults.sdkLoaded && testResults.sdkType === 'function') {
         console.log('✅ SDK hazır, test reklamı gösteriliyor...');
+        
+        // Test için script ayarla
+        currentScript = 'test';
+        
         showMonetagAd().then(result => {
             console.log('🎯 Test reklamı sonucu:', result);
+            if (result) {
+                console.log('✅ Test reklamı başarılı!');
+            } else {
+                console.log('❌ Test reklamı başarısız!');
+            }
+        }).catch(error => {
+            console.error('❌ Test reklamı hatası:', error);
         });
     } else {
         console.error('❌ SDK hazır değil:', testResults);
+        console.log('🔧 SDK yeniden yüklenmeye çalışılıyor...');
+        initializeMonetag();
     }
     
     return testResults;
 }
 
 // Global olarak erişilebilir yap
-window.testMonetagSDK = testMonetagSDK; 
+window.testMonetagSDK = testMonetagSDK;
+
+// Fallback stats for when backend is not available
+const FALLBACK_STATS = {
+    totalDownloads: 1234,
+    activeUsers: 567,
+    totalUsers: 890
+}; 
