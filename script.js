@@ -10,9 +10,6 @@ function initializeTelegramWebApp() {
     console.log('🔍 window.Telegram:', typeof window.Telegram);
     console.log('🔍 window.Telegram.WebApp:', typeof window.Telegram?.WebApp);
     
-    // Telegram WebApp kontrolü
-    checkTelegramWebApp();
-    
     // Check if Telegram WebApp is available
     if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
         console.log('✅ Telegram WebApp bulundu, başlatılıyor...');
@@ -184,28 +181,18 @@ setInterval(updateStats, 30000); // Her 30 saniyede bir güncelle
 // Monetag Controller
 let monetagReady = false;
 let monetagPreloaded = false;
-let isTelegramWebApp = false;
-
-// Telegram WebApp kontrolü
-function checkTelegramWebApp() {
-    isTelegramWebApp = !!(window.Telegram && window.Telegram.WebApp);
-    console.log('🔍 Telegram WebApp kontrolü:', isTelegramWebApp);
-    
-    if (isTelegramWebApp) {
-        console.log('✅ Telegram WebApp tespit edildi');
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-    } else {
-        console.log('ℹ️ Normal web tarayıcısında çalışıyor');
-    }
-}
 
 // Initialize Monetag SDK
 function initializeMonetag() {
     try {
         console.log('🔧 Monetag SDK başlatılıyor...');
         console.log('📋 Zone ID:', '9499819');
-        console.log('📱 Telegram WebApp:', isTelegramWebApp);
+        
+        // Telegram WebApp SDK'yı hazırla
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            console.log('✅ Telegram WebApp SDK hazır');
+        }
         
         // Monetag SDK'nın yüklenmesini bekle
         const checkMonetag = setInterval(() => {
@@ -217,19 +204,13 @@ function initializeMonetag() {
             }
         }, 100);
         
-        // Telegram WebApp'te daha uzun süre bekle
-        const timeout = isTelegramWebApp ? 20000 : 10000;
+        // 10 saniye sonra timeout
         setTimeout(() => {
             if (!monetagReady) {
                 clearInterval(checkMonetag);
                 console.error('❌ Monetag SDK yüklenemedi');
-                
-                // Telegram WebApp'te timeout durumunda fallback
-                if (isTelegramWebApp) {
-                    console.log('📱 Telegram WebApp timeout - Fallback kullanılıyor');
-                }
             }
-        }, timeout);
+        }, 10000);
         
     } catch (error) {
         console.error('❌ Monetag SDK başlatılamadı:', error);
@@ -483,38 +464,20 @@ function hideAdModal() {
 // Show Monetag Ad (Modal handler)
 async function handleMonetagAd() {
     try {
-        // Yükleme göstergesi
-        showNotification('🔄 Reklam yükleniyor...', 'info');
-        
-        // Monetag SDK'nın yüklenmesini bekle
-        if (!monetagReady) {
-            console.log('⏳ Monetag SDK henüz hazır değil, bekleniyor...');
-            
-            // Telegram WebApp'te daha uzun süre bekle
-            const maxWaitTime = isTelegramWebApp ? 30000 : 15000;
-            const startTime = Date.now();
-            
-            while (!monetagReady && (Date.now() - startTime) < maxWaitTime) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            if (!monetagReady) {
-                throw new Error('Monetag SDK yüklenemedi');
-            }
-        }
-        
         // Monetag reklamını göster
         const adWatched = await showMonetagAd();
         
         if (adWatched) {
+            // Kullanıcı reklamı tamamladı
             showNotification('✅ Reklam tamamlandı! Script indiriliyor...', 'success');
             showDownloadModal();
         } else {
+            // Kullanıcı reklamı tamamlamadı
             showNotification('❌ Reklam tamamlanmadı. Lütfen tekrar deneyin.', 'error');
         }
     } catch (error) {
         console.error('Reklam gösterme hatası:', error);
-        showNotification('❌ Reklam yüklenirken hata oluştu. Lütfen tekrar deneyin.', 'error');
+        showNotification('❌ Reklam yüklenirken hata oluştu.', 'error');
     }
 }
 
