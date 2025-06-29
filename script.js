@@ -32,8 +32,7 @@ function initializeTelegramWebApp() {
             // Update theme toggle icon
             const themeToggle = document.getElementById('theme-toggle');
             if (themeToggle) {
-                const icon = themeToggle.querySelector('i');
-                icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+                themeToggle.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
                 console.log('✅ Tema toggle güncellendi');
             }
             
@@ -433,8 +432,7 @@ themeToggle.addEventListener('click', () => {
     document.documentElement.setAttribute('data-theme', newTheme);
     
     // Update icon
-    const icon = themeToggle.querySelector('i');
-    icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    themeToggle.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     
     // Save theme preference
     localStorage.setItem('theme', newTheme);
@@ -450,8 +448,7 @@ themeToggle.addEventListener('click', () => {
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme) {
     document.documentElement.setAttribute('data-theme', savedTheme);
-    const icon = themeToggle.querySelector('i');
-    icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    themeToggle.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
 // Unlock buttons
