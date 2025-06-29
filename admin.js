@@ -1,5 +1,7 @@
-// Backend API URL'si
-const API_BASE_URL = 'http://localhost:3000/api';
+// Backend API URL'si - Dinamik olarak belirlenir
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? 'http://localhost:3000/api' 
+    : `${window.location.protocol}//${window.location.hostname}:3000/api`;
 
 // Admin ID (kendi chat ID'nizi buraya yazın)
 const ADMIN_ID = 7749779502; // Buraya kendi chat ID'nizi yazın
@@ -7,12 +9,14 @@ const ADMIN_ID = 7749779502; // Buraya kendi chat ID'nizi yazın
 // Global variables
 let scripts = {};
 let stats = {};
+let users = {};
 
 // Sayfa yüklendiğinde istatistikleri yükle
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🔧 Admin panel başlatılıyor...');
     loadStats();
     loadScripts();
+    loadUsers();
     setupEventListeners();
 });
 
@@ -26,6 +30,11 @@ function setupEventListeners() {
     const uploadForm = document.getElementById('upload-form');
     if (uploadForm) {
         uploadForm.addEventListener('submit', handleFileUpload);
+    }
+    
+    const addCoinForm = document.getElementById('add-coin-form');
+    if (addCoinForm) {
+        addCoinForm.addEventListener('submit', handleAddCoin);
     }
 }
 
@@ -116,8 +125,7 @@ async function handleAddScript(event) {
         id: formData.get('script-id') || document.getElementById('script-id').value,
         name: formData.get('script-name') || document.getElementById('script-name').value,
         description: formData.get('script-description') || document.getElementById('script-description').value,
-        filename: formData.get('script-filename') || document.getElementById('script-filename').value,
-        content: formData.get('script-content') || document.getElementById('script-content').value
+        filename: formData.get('script-filename') || document.getElementById('script-filename').value
     };
     
     try {
@@ -147,67 +155,72 @@ async function handleAddScript(event) {
     }
 }
 
-// Edit script
+// Script düzenleme fonksiyonu
 function editScript(scriptId) {
     const script = scripts[scriptId];
-    if (!script) return;
+    if (!script) {
+        showNotification('Script bulunamadı!', 'error');
+        return;
+    }
     
-    // Fill the form with current script data
-    document.getElementById('script-id').value = scriptId;
-    document.getElementById('script-name').value = script.name;
-    document.getElementById('script-description').value = script.description;
-    document.getElementById('script-filename').value = script.filename;
-    document.getElementById('script-content').value = script.content;
+    // Form alanlarını doldur
+    document.getElementById('edit-script-id').value = scriptId;
+    document.getElementById('edit-script-name').value = script.name;
+    document.getElementById('edit-script-description').value = script.description;
+    document.getElementById('edit-script-filename').value = script.filename;
     
-    // Change form submit handler to update instead of add
-    const form = document.getElementById('add-script-form');
-    form.onsubmit = (event) => handleUpdateScript(event, scriptId);
+    // Düzenleme bölümünü göster
+    document.getElementById('edit-script-section').style.display = 'block';
     
-    // Change button text
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.innerHTML = '<i class="fas fa-save"></i> Script Güncelle';
-    
-    showNotification('📝 Script düzenleme modu aktif', 'info');
+    // Sayfayı düzenleme bölümüne kaydır
+    document.getElementById('edit-script-section').scrollIntoView({ behavior: 'smooth' });
 }
 
-// Handle update script
-async function handleUpdateScript(event, scriptId) {
-    event.preventDefault();
+// Script düzenleme formu gönderimi
+document.getElementById('edit-script-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
     
-    const formData = new FormData(event.target);
-    const updates = {
-        name: formData.get('script-name') || document.getElementById('script-name').value,
-        description: formData.get('script-description') || document.getElementById('script-description').value,
-        filename: formData.get('script-filename') || document.getElementById('script-filename').value,
-        content: formData.get('script-content') || document.getElementById('script-content').value
-    };
+    const scriptId = document.getElementById('edit-script-id').value;
+    const name = document.getElementById('edit-script-name').value;
+    const description = document.getElementById('edit-script-description').value;
+    const filename = document.getElementById('edit-script-filename').value;
+    const uploadFile = document.getElementById('edit-upload-file').files[0];
     
     try {
-        const response = await fetch(`${API_BASE_URL}/admin/update-script`, {
+        const formData = new FormData();
+        formData.append('id', scriptId);
+        formData.append('name', name);
+        formData.append('description', description);
+        formData.append('filename', filename);
+        
+        // Eğer yeni dosya yüklendiyse, dosyayı da ekle
+        if (uploadFile) {
+            formData.append('file', uploadFile);
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/admin/scripts/update`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                adminId: ADMIN_ID,
-                scriptId: scriptId,
-                updates: updates
-            })
+            body: formData
         });
         
         if (response.ok) {
-            const result = await response.json();
-            showNotification('✅ Script başarıyla güncellendi!', 'success');
-            resetForm();
+            showNotification('Script başarıyla güncellendi!', 'success');
+            cancelEdit();
             loadScripts();
         } else {
-            const error = await response.json();
-            throw new Error(error.error || 'Script güncellenemedi');
+            const error = await response.text();
+            showNotification(`Güncelleme hatası: ${error}`, 'error');
         }
     } catch (error) {
-        console.error('❌ Script güncelleme hatası:', error);
-        showNotification('❌ Script güncellenemedi: ' + error.message, 'error');
+        showNotification(`Güncelleme hatası: ${error.message}`, 'error');
     }
+});
+
+// Düzenleme iptal etme
+function cancelEdit() {
+    document.getElementById('edit-script-section').style.display = 'none';
+    document.getElementById('edit-script-form').reset();
+    document.getElementById('edit-upload-file').value = '';
 }
 
 // Toggle script status
@@ -270,16 +283,6 @@ async function deleteScript(scriptId) {
     }
 }
 
-// Reset form to add mode
-function resetForm() {
-    const form = document.getElementById('add-script-form');
-    form.reset();
-    form.onsubmit = handleAddScript;
-    
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.innerHTML = '<i class="fas fa-plus"></i> Script Ekle';
-}
-
 // Show notification
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
@@ -307,7 +310,6 @@ window.loadScripts = loadScripts;
 window.editScript = editScript;
 window.toggleScript = toggleScript;
 window.deleteScript = deleteScript;
-window.resetForm = resetForm;
 window.clearUploadForm = clearUploadForm;
 
 // Yeni script ekleme modalını göster
@@ -447,4 +449,150 @@ function readFileAsText(file) {
 // Clear upload form
 function clearUploadForm() {
     document.getElementById('upload-form').reset();
+}
+
+// Load users
+async function loadUsers() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/users?adminId=${ADMIN_ID}`);
+        if (response.ok) {
+            const data = await response.json();
+            users = data.users || {};
+            displayUsers();
+            updateUserStats();
+        }
+    } catch (error) {
+        console.error('❌ Kullanıcılar yüklenirken hata:', error);
+        showNotification('❌ Kullanıcılar yüklenemedi', 'error');
+    }
+}
+
+// Display users in the list
+function displayUsers() {
+    const usersList = document.getElementById('users-list');
+    usersList.innerHTML = '';
+    
+    if (Object.keys(users).length === 0) {
+        usersList.innerHTML = '<div class="no-data">Henüz kullanıcı bulunmuyor.</div>';
+        return;
+    }
+    
+    Object.keys(users).forEach(userId => {
+        const user = users[userId];
+        const userElement = createUserElement(userId, user);
+        usersList.appendChild(userElement);
+    });
+}
+
+// Create user element
+function createUserElement(userId, user) {
+    const div = document.createElement('div');
+    div.className = 'user-item';
+    
+    const userName = user.name || user.username || `Kullanıcı ${userId}`;
+    const userCoins = user.coins || 0;
+    const joinDate = user.joinDate ? new Date(user.joinDate).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+    
+    div.innerHTML = `
+        <div class="user-header">
+            <div class="user-info">
+                <div class="user-name">${userName}</div>
+                <div class="user-id">ID: ${userId}</div>
+            </div>
+            <div class="user-coins">🪙 ${userCoins} coins</div>
+        </div>
+        <div class="user-details">
+            <div class="user-join">Katılım: ${joinDate}</div>
+            <div class="user-downloads">İndirmeler: ${user.downloads || 0}</div>
+        </div>
+        <div class="user-actions">
+            <button class="btn-admin btn-primary btn-small" onclick="addCoinsToUser('${userId}')">
+                <i class="fas fa-plus"></i> Coin Ekle
+            </button>
+            <button class="btn-admin btn-secondary btn-small" onclick="viewUserDetails('${userId}')">
+                <i class="fas fa-eye"></i> Detaylar
+            </button>
+        </div>
+    `;
+    
+    return div;
+}
+
+// Update user statistics
+function updateUserStats() {
+    const totalUsers = Object.keys(users).length;
+    const totalCoins = Object.values(users).reduce((sum, user) => sum + (user.coins || 0), 0);
+    const avgCoins = totalUsers > 0 ? Math.round(totalCoins / totalUsers) : 0;
+    
+    document.getElementById('total-users-count').textContent = totalUsers;
+    document.getElementById('total-coins').textContent = totalCoins;
+    document.getElementById('avg-coins').textContent = avgCoins;
+}
+
+// Handle add coin form submission
+async function handleAddCoin(event) {
+    event.preventDefault();
+    
+    const userId = document.getElementById('user-id').value;
+    const coinAmount = parseInt(document.getElementById('coin-amount').value);
+    const reason = document.getElementById('coin-reason').value;
+    
+    if (!userId || !coinAmount || coinAmount <= 0) {
+        showNotification('❌ Geçerli kullanıcı ID ve coin miktarı gerekli', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/add-coins`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID,
+                userId: userId,
+                amount: coinAmount,
+                reason: reason
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification(`✅ ${coinAmount} coin başarıyla eklendi!`, 'success');
+            document.getElementById('add-coin-form').reset();
+            loadUsers();
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Coin eklenemedi');
+        }
+    } catch (error) {
+        console.error('❌ Coin ekleme hatası:', error);
+        showNotification('❌ Coin eklenemedi: ' + error.message, 'error');
+    }
+}
+
+// Add coins to specific user
+function addCoinsToUser(userId) {
+    document.getElementById('user-id').value = userId;
+    document.getElementById('coin-amount').focus();
+}
+
+// View user details
+function viewUserDetails(userId) {
+    const user = users[userId];
+    if (!user) {
+        showNotification('Kullanıcı bulunamadı!', 'error');
+        return;
+    }
+    
+    const details = `
+Kullanıcı Detayları:
+ID: ${userId}
+Ad: ${user.name || user.username || 'Bilinmiyor'}
+Coin: ${user.coins || 0}
+İndirmeler: ${user.downloads || 0}
+Katılım: ${user.joinDate ? new Date(user.joinDate).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
+    `;
+    
+    alert(details);
 } 

@@ -200,12 +200,7 @@
             color: white;
             font-weight: 600;
             z-index: 1000;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-        }
-        
-        .notification.show {
-            transform: translateX(0);
+            animation: slideIn 0.3s ease;
         }
         
         .notification.success {
@@ -218,6 +213,105 @@
         
         .notification.info {
             background: #17a2b8;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* User Management Styles */
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        
+        .user-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .user-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .user-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .user-id {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .user-coins {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+        
+        .user-details {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .user-join, .user-downloads {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        .coin-add-section {
+            border: 2px solid var(--border-color);
+        }
+        
+        .coin-add-section h3 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .users-section h3 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
         }
     </style>
 </head>
@@ -270,11 +364,6 @@
                     <input type="text" id="script-filename" placeholder="örn: darktunnel.conf" required>
                 </div>
                 
-                <div class="form-group">
-                    <label for="script-content">Script İçeriği:</label>
-                    <textarea id="script-content" placeholder="Script konfigürasyonu buraya..." required></textarea>
-                </div>
-                
                 <div class="script-actions">
                     <button type="submit" class="btn-admin btn-primary">
                         <i class="fas fa-plus"></i> Script Ekle
@@ -307,9 +396,9 @@
                 
                 <div class="form-group">
                     <label for="upload-file">Dosya Seç:</label>
-                    <input type="file" id="upload-file" accept=".conf,.txt,.json,.yaml,.yml" required>
+                    <input type="file" id="upload-file" required>
                     <small style="color: var(--text-secondary); margin-top: 0.25rem;">
-                        Desteklenen formatlar: .conf, .txt, .json, .yaml, .yml
+                        Tüm dosya formatları kabul edilir
                     </small>
                 </div>
                 
@@ -322,6 +411,117 @@
                     </button>
                 </div>
             </form>
+        </div>
+        
+        <!-- Script Düzenleme Bölümü -->
+        <div class="script-manager" style="margin-top: 2rem; display: none;" id="edit-script-section">
+            <h2><i class="fas fa-edit"></i> Script Düzenle</h2>
+            <form class="script-form" id="edit-script-form">
+                <div class="form-group">
+                    <label for="edit-script-id">Script ID:</label>
+                    <input type="text" id="edit-script-id" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-script-name">Script Adı:</label>
+                    <input type="text" id="edit-script-name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-script-description">Açıklama:</label>
+                    <input type="text" id="edit-script-description" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-script-filename">Dosya Adı:</label>
+                    <input type="text" id="edit-script-filename" required>
+                </div>
+                
+                <!-- Dosya Yükleme Seçeneği -->
+                <div class="form-group">
+                    <label for="edit-upload-file">Yeni Dosya Yükle (Opsiyonel):</label>
+                    <input type="file" id="edit-upload-file">
+                    <small style="color: var(--text-secondary); margin-top: 0.25rem;">
+                        Yeni dosya yüklersen, mevcut içerik değiştirilir
+                    </small>
+                </div>
+                
+                <div class="script-actions">
+                    <button type="submit" class="btn-admin btn-primary">
+                        <i class="fas fa-save"></i> Güncelle
+                    </button>
+                    <button type="button" class="btn-admin btn-secondary" onclick="cancelEdit()">
+                        <i class="fas fa-times"></i> İptal
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Kullanıcı Yönetimi Bölümü -->
+        <div class="script-manager" style="margin-top: 2rem;">
+            <h2><i class="fas fa-users"></i> Kullanıcı Yönetimi</h2>
+            
+            <!-- Kullanıcı İstatistikleri -->
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-users-count">0</div>
+                        <div class="stat-label">Toplam Kullanıcı</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🪙</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-coins">0</div>
+                        <div class="stat-label">Toplam Coin</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="avg-coins">0</div>
+                        <div class="stat-label">Ortalama Coin</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Coin Ekleme Formu -->
+            <div class="coin-add-section" style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                <h3><i class="fas fa-plus-circle"></i> Kullanıcıya Coin Ekle</h3>
+                <form class="script-form" id="add-coin-form">
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="user-id">Kullanıcı ID:</label>
+                            <input type="text" id="user-id" placeholder="örn: 123456789" required>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="coin-amount">Coin Miktarı:</label>
+                            <input type="number" id="coin-amount" placeholder="örn: 10" min="1" required>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="coin-reason">Sebep (Opsiyonel):</label>
+                            <input type="text" id="coin-reason" placeholder="örn: Promosyon, Ödül">
+                        </div>
+                    </div>
+                    <div class="script-actions">
+                        <button type="submit" class="btn-admin btn-primary">
+                            <i class="fas fa-plus"></i> Coin Ekle
+                        </button>
+                        <button type="button" class="btn-admin btn-secondary" onclick="loadUsers()">
+                            <i class="fas fa-refresh"></i> Yenile
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Kullanıcı Listesi -->
+            <div class="users-section">
+                <h3><i class="fas fa-list"></i> Kullanıcı Listesi</h3>
+                <div class="users-list" id="users-list">
+                    <!-- Kullanıcılar buraya yüklenecek -->
+                </div>
+            </div>
         </div>
         
         <div class="scripts-list" id="scripts-list">

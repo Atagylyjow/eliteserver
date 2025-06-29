@@ -10,35 +10,10 @@ const DEBUG_MODE = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'dev
 const LOG_FILE = 'app.log';
 
 // Multer configuration for file uploads
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const uploadDir = path.join(__dirname, 'uploads');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        // Keep original filename
-        cb(null, file.originalname);
-    }
-});
-
-const upload = multer({ 
-    storage: storage,
+const upload = multer({
+    dest: 'uploads/',
     limits: {
         fileSize: 1024 * 1024 // 1MB limit
-    },
-    fileFilter: function (req, file, cb) {
-        // Allow only specific file types
-        const allowedTypes = ['.conf', '.txt', '.json', '.yaml', '.yml'];
-        const fileExt = path.extname(file.originalname).toLowerCase();
-        
-        if (allowedTypes.includes(fileExt)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Desteklenmeyen dosya formatı. Sadece .conf, .txt, .json, .yaml, .yml dosyaları kabul edilir.'));
-        }
     }
 });
 
@@ -316,6 +291,47 @@ function writeDatabase() {
 }
 // --- Veritabanı Sistemi Sonu ---
 
+// Kullanıcı ID'lerini normalize et
+function normalizeUserId(userId) {
+    if (!userId || userId === 'anonymous') {
+        return 'anonymous';
+    }
+    
+    // String'e çevir ve temizle
+    const cleanId = userId.toString().trim();
+    
+    // Sadece sayısal karakterler varsa sayı olarak döndür
+    if (/^\d+$/.test(cleanId)) {
+        return cleanId;
+    }
+    
+    // Diğer durumlar için hash oluştur
+    let hash = 0;
+    for (let i = 0; i < cleanId.length; i++) {
+        const char = cleanId.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // 32-bit integer'a çevir
+    }
+    return Math.abs(hash).toString();
+}
+
+// Kullanıcı verilerini al veya oluştur
+function getUserData(userId) {
+    const normalizedId = normalizeUserId(userId);
+    
+    if (!database.users[normalizedId]) {
+        database.users[normalizedId] = {
+            downloads: 0,
+            firstSeen: new Date().toISOString(),
+            coins: 0,
+            originalId: userId,
+            normalizedId: normalizedId
+        };
+    }
+    
+    return database.users[normalizedId];
+}
+
 // Yönetici kontrolü
 function isAdmin(chatId) {
     return database.admins.includes(chatId);
@@ -367,117 +383,128 @@ app.get('/api/scripts', (req, res) => {
     res.json(database.vpnScripts);
 });
 
-app.post('/api/download/:scriptName', (req, res) => {
-    const { scriptName } = req.params;
-    const { userId } = req.body;
+app.get('/api/download/:scriptId', (req, res) => {
+    const { scriptId } = req.params;
+    const userId = getUserId(req);
     
-    debug('Download API called', { scriptName, userId, ip: req.ip });
+    debug('Download API called', { scriptId, userId, ip: req.ip });
     
-    const script = database.vpnScripts[scriptName];
-    if (script && script.enabled) {
-        // İstatistikleri ve kullanıcı verilerini güncelle
-        updateStats(scriptName);
-        if (userId && userId !== 'anonymous') {
-            if (!database.users[userId]) {
-                database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
-            }
-            database.users[userId].downloads++;
-            database.users[userId].lastDownload = new Date();
-        }
-        
-        writeDatabase(); // Değişiklikleri kaydet
-        
-        log('info', 'Script download request successful', { scriptName, userId });
-        
-        // İndirme için script içeriğini gönder
-        res.json({
-            success: true,
-            script: {
-                content: script.content,
-                filename: script.filename
-            }
-        });
-    } else {
-        log('warn', 'Script download failed', { scriptName, userId, reason: 'Script not found or disabled' });
-        res.status(400).json({ success: false, error: 'Script bulunamadı veya devre dışı' });
+    if (!database.vpnScripts[scriptId] || !database.vpnScripts[scriptId].enabled) {
+        log('warn', 'Script download failed - not found or disabled', { scriptId, userId });
+        return res.status(404).json({ success: false, error: 'Script bulunamadı veya devre dışı' });
     }
+    
+    const script = database.vpnScripts[scriptId];
+    const userData = getUserData(userId);
+    
+    // Kullanıcı istatistiklerini güncelle
+    userData.downloads++;
+    userData.lastDownload = new Date().toISOString();
+    
+    // Genel istatistikleri güncelle
+    updateStats(scriptId);
+    
+    // Veritabanını kaydet
+    writeDatabase();
+    
+    log('info', 'Script downloaded', { scriptId, userId, scriptName: script.name });
+    
+    // Script içeriğini döndür
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename="${script.filename}"`);
+    res.send(script.content);
 });
 
-// Coin sistemi API'leri
+// Kullanıcı coin'lerini getir
 app.get('/api/user/:userId/coins', (req, res) => {
     const { userId } = req.params;
-    if (!database.users[userId]) {
-        database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
-        writeDatabase();
-    }
-    res.json({ success: true, coins: database.users[userId].coins || 0 });
+    
+    debug('Get user coins API called', { userId, ip: req.ip });
+    
+    const userData = getUserData(userId);
+    
+    res.json({ success: true, coins: userData.coins || 0 });
 });
 
+// Kullanıcıya coin ekle
 app.post('/api/user/:userId/add-coins', (req, res) => {
     const { userId } = req.params;
     const { amount } = req.body;
     
-    if (!database.users[userId]) {
-        database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
+    debug('Add coins API called', { userId, amount, ip: req.ip });
+    
+    if (!amount || amount <= 0) {
+        return res.status(400).json({ success: false, error: 'Geçerli coin miktarı gerekli' });
     }
     
-    database.users[userId].coins = (database.users[userId].coins || 0) + amount;
-    writeDatabase(); // Değişiklikleri kaydet
+    const userData = getUserData(userId);
+    userData.coins = (userData.coins || 0) + amount;
     
-    log('info', 'Coins added to user', { userId, amount, newTotal: database.users[userId].coins });
-    res.json({ success: true, coins: database.users[userId].coins });
+    // Veritabanını kaydet
+    writeDatabase();
+    
+    log('info', 'Coins added to user', { userId, amount, newTotal: userData.coins });
+    res.json({ success: true, coins: userData.coins });
 });
 
+// Kullanıcıdan coin çıkar
 app.post('/api/user/:userId/deduct-coins', (req, res) => {
     const { userId } = req.params;
     const { amount } = req.body;
     
     debug('Deduct coins API called', { userId, amount, ip: req.ip });
     
-    if (!database.users[userId]) {
-        database.users[userId] = { downloads: 0, firstSeen: new Date(), coins: 0 };
+    if (!amount || amount <= 0) {
+        return res.status(400).json({ success: false, error: 'Geçerli coin miktarı gerekli' });
     }
     
-    const currentCoins = database.users[userId].coins || 0;
+    const userData = getUserData(userId);
+    const currentCoins = userData.coins || 0;
     
     if (currentCoins < amount) {
-        log('warn', 'Insufficient coins for deduction', { userId, requested: amount, available: currentCoins });
-        return res.status(400).json({ 
-            success: false, 
-            error: 'Yetersiz coin',
-            available: currentCoins,
-            requested: amount
-        });
+        return res.status(400).json({ success: false, error: 'Yetersiz coin' });
     }
     
-    database.users[userId].coins = currentCoins - amount;
-    writeDatabase(); // Değişiklikleri kaydet
+    userData.coins = currentCoins - amount;
     
-    log('info', 'Coins deducted from user', { userId, amount, remaining: database.users[userId].coins });
-    res.json({ success: true, coins: database.users[userId].coins });
+    // Veritabanını kaydet
+    writeDatabase();
+    
+    log('info', 'Coins deducted from user', { userId, amount, remaining: userData.coins });
+    res.json({ success: true, coins: userData.coins });
 });
 
+// Kullanıcı coin kullan (satın alma için)
 app.post('/api/user/:userId/use-coins', (req, res) => {
     const { userId } = req.params;
     const { amount } = req.body;
     
     debug('Use coins API called', { userId, amount, ip: req.ip });
     
-    if (!database.users[userId] || !database.users[userId].coins) {
+    if (!amount || amount <= 0) {
+        return res.status(400).json({ success: false, error: 'Geçerli coin miktarı gerekli' });
+    }
+    
+    const userData = getUserData(userId);
+    
+    if (!userData.coins) {
+        return res.status(400).json({ success: false, error: 'Coin bulunamadı' });
+    }
+    
+    if (userData.coins < amount) {
         return res.status(400).json({ success: false, error: 'Yetersiz coin' });
     }
     
-    if (database.users[userId].coins < amount) {
-        return res.status(400).json({ success: false, error: 'Yetersiz coin' });
-    }
+    userData.coins -= amount;
     
-    database.users[userId].coins -= amount;
+    // Veritabanını kaydet
+    writeDatabase();
     
-    log('info', 'Coins used by user', { userId, amount, remaining: database.users[userId].coins });
+    log('info', 'Coins used by user', { userId, amount, remaining: userData.coins });
     
     res.json({
         success: true,
-        coins: database.users[userId].coins
+        coins: userData.coins
     });
 });
 
@@ -558,25 +585,59 @@ app.post('/api/admin/upload-script', upload.single('scriptFile'), (req, res) => 
     }
 });
 
-app.post('/api/admin/update-script', (req, res) => {
-    const { adminId, scriptId, updates } = req.body;
-    
-    debug('Admin update script API called', { adminId, scriptId, updates, ip: req.ip });
-    
-    if (!isAdmin(adminId)) {
-        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
-        return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
-    }
-    
-    if (database.vpnScripts[scriptId]) {
-        database.vpnScripts[scriptId] = { ...database.vpnScripts[scriptId], ...updates };
+app.post('/api/admin/scripts/update', upload.single('file'), (req, res) => {
+    try {
+        const { id, name, description, filename } = req.body;
         
-        log('info', 'Script updated by admin', { adminId, scriptId, updates });
+        if (!id || !name || !description || !filename) {
+            return res.status(400).json({ error: 'Tüm alanlar gerekli' });
+        }
+        
+        // Script'i bul
+        if (!database.vpnScripts[id]) {
+            return res.status(404).json({ error: 'Script bulunamadı' });
+        }
+        
+        const script = database.vpnScripts[id];
+        
+        // Eğer yeni dosya yüklendiyse
+        if (req.file) {
+            // Eski dosyayı sil (eğer varsa)
+            if (script.filename && script.filename !== req.file.originalname) {
+                const oldFilePath = path.join(__dirname, 'uploads', script.filename);
+                if (fs.existsSync(oldFilePath)) {
+                    fs.unlinkSync(oldFilePath);
+                }
+            }
+            
+            // Yeni dosya içeriğini oku
+            const newContent = fs.readFileSync(req.file.path, 'utf8');
+            
+            // Script'i güncelle
+            database.vpnScripts[id] = {
+                ...script,
+                name,
+                description,
+                filename: req.file.originalname,
+                content: newContent
+            };
+        } else {
+            // Sadece metin alanlarını güncelle
+            database.vpnScripts[id] = {
+                ...script,
+                name,
+                description,
+                filename
+            };
+        }
+        
+        // Veritabanını kaydet
+        writeDatabase();
         
         res.json({ success: true, message: 'Script başarıyla güncellendi' });
-    } else {
-        log('warn', 'Script update failed - not found', { adminId, scriptId });
-        res.status(404).json({ success: false, error: 'Script bulunamadı' });
+    } catch (error) {
+        console.error('Script güncelleme hatası:', error);
+        res.status(500).json({ error: 'Script güncellenemedi' });
     }
 });
 
@@ -658,6 +719,47 @@ app.get('/api/admin/users', (req, res) => {
     });
     
     res.json({ success: true, users: database.users });
+});
+
+// Admin coin ekleme API
+app.post('/api/admin/add-coins', (req, res) => {
+    const { adminId, userId, amount, reason } = req.body;
+    
+    debug('Admin add coins API called', { adminId, userId, amount, reason, ip: req.ip });
+    
+    if (!isAdmin(parseInt(adminId))) {
+        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
+        return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
+    }
+    
+    if (!userId || !amount || amount <= 0) {
+        return res.status(400).json({ success: false, error: 'Geçerli kullanıcı ID ve coin miktarı gerekli' });
+    }
+    
+    // Kullanıcı verilerini al veya oluştur
+    const userData = getUserData(userId);
+    
+    // Coin ekle
+    const oldCoins = userData.coins || 0;
+    userData.coins = oldCoins + amount;
+    
+    // Veritabanını kaydet
+    writeDatabase();
+    
+    log('info', 'Coins added by admin', { 
+        adminId, 
+        userId, 
+        amount, 
+        reason,
+        oldCoins,
+        newCoins: userData.coins
+    });
+    
+    res.json({ 
+        success: true, 
+        message: `${amount} coin başarıyla eklendi`,
+        userCoins: userData.coins
+    });
 });
 
 // Bot komutları
