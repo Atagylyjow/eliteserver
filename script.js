@@ -535,28 +535,28 @@ if (tg) {
     tg.enableClosingConfirmation();
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 DOMContentLoaded: Uygulama başlatılıyor...');
+// ---- APP INITIALIZATION ----
+// Since the script is at the end of the body, the DOM is already loaded.
+// We don't need DOMContentLoaded.
+
+console.log('🚀 Uygulama başlatılıyor...');
+
+// 1. Initialize Telegram environment
+initializeTelegramWebApp();
+
+// 2. A small delay to ensure the Telegram WebApp object is fully available
+setTimeout(() => {
+    console.log('⏳ Gecikmeli başlatma: ID alınıyor ve listener\'lar kuruluyor.');
     
-    // Initialize Telegram environment first
-    initializeTelegramWebApp();
+    // 3. Get User ID and Load Coins
+    userId = getUserId();
+    loadUserCoins();
     
-    // It's crucial to wait for the WebApp to be truly ready.
-    // We can use a small timeout or a more robust check if needed.
-    setTimeout(() => {
-        console.log('⏳ Gecikmeli başlatma: ID alınıyor ve listener\'lar kuruluyor.');
-        
-        // Now that the app is initialized, get the user ID and load coins
-        userId = getUserId();
-        loadUserCoins();
-        
-        // Set up all button and element listeners
-        setupEventListeners();
-        
-        console.log('✅ Uygulama tamamen başlatıldı.');
-    }, 100); // 100ms delay to ensure Telegram WebApp is ready
-});
+    // 4. Set up all event listeners for buttons, etc.
+    setupEventListeners();
+    
+    console.log('✅ Uygulama tamamen başlatıldı.');
+}, 100); // 100ms delay to give Telegram's script time to initialize.
 
 function setupEventListeners() {
     console.log('🔧 Olay dinleyicileri (event listeners) kuruluyor...');
