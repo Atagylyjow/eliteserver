@@ -12,10 +12,28 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Monetag SDK - Async yükleme -->
+    <!-- Monetag SDK - Koşullu yükleme -->
     <script>
-        // Monetag SDK'yı dinamik olarak yükle
+        // Telegram WebApp kontrolü
+        function isTelegramWebApp() {
+            return !!(
+                window.Telegram && 
+                window.Telegram.WebApp ||
+                window.location.href.includes('t.me') ||
+                window.location.href.includes('telegram.org') ||
+                window.navigator.userAgent.includes('Telegram') ||
+                document.referrer.includes('t.me') ||
+                document.referrer.includes('telegram.org')
+            );
+        }
+        
+        // Monetag SDK'yı sadece normal tarayıcıda yükle
         function loadMonetagSDK() {
+            if (isTelegramWebApp()) {
+                console.log('📱 Telegram WebApp tespit edildi - Monetag SDK yüklenmeyecek');
+                return Promise.resolve();
+            }
+            
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = '//libtl.com/sdk.js';
