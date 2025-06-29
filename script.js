@@ -409,6 +409,7 @@ async function downloadScript(scriptName) {
             // Create a temporary link to trigger the download
             const link = document.createElement('a');
             link.href = url;
+            // Use the filename from server response, fallback to script name if not provided
             link.download = data.script.filename || `${scriptName}.conf`;
             document.body.appendChild(link);
             link.click();

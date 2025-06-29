@@ -509,6 +509,8 @@ app.post('/api/admin/toggle-script', (req, res) => {
         database.vpnScripts[scriptId].enabled = !database.vpnScripts[scriptId].enabled;
         const newStatus = database.vpnScripts[scriptId].enabled;
         
+        writeDatabase(); // Değişiklikleri kaydet
+        
         log('info', 'Script toggled by admin', { 
             adminId, 
             scriptId, 
@@ -522,6 +524,34 @@ app.post('/api/admin/toggle-script', (req, res) => {
         });
     } else {
         log('warn', 'Script toggle failed - not found', { adminId, scriptId });
+        res.status(404).json({ success: false, error: 'Script bulunamadı' });
+    }
+});
+
+app.post('/api/admin/delete-script', (req, res) => {
+    const { adminId, scriptId } = req.body;
+    
+    debug('Admin delete script API called', { adminId, scriptId, ip: req.ip });
+    
+    if (!isAdmin(adminId)) {
+        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
+        return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
+    }
+    
+    if (database.vpnScripts[scriptId]) {
+        const scriptName = database.vpnScripts[scriptId].name;
+        delete database.vpnScripts[scriptId];
+        
+        writeDatabase(); // Değişiklikleri kaydet
+        
+        log('info', 'Script deleted by admin', { adminId, scriptId, scriptName });
+        
+        res.json({ 
+            success: true, 
+            message: `Script "${scriptName}" başarıyla silindi` 
+        });
+    } else {
+        log('warn', 'Script delete failed - not found', { adminId, scriptId });
         res.status(404).json({ success: false, error: 'Script bulunamadı' });
     }
 });

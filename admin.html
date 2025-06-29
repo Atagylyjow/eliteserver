@@ -3,300 +3,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VPN Script Hub - Yönetici Paneli</title>
+    <title>VPN Script Hub - Admin Panel</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .admin-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 2rem;
         }
         
         .admin-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .admin-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .admin-card {
             background: var(--bg-card);
+            padding: 2rem;
             border-radius: 15px;
-            padding: 25px;
-            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            text-align: center;
             border: 1px solid var(--border-color);
         }
         
-        .admin-card h3 {
-            color: var(--text-primary);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .admin-header h1 {
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
         }
         
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
         
-        .stat-item:last-child {
-            border-bottom: none;
+        .stat-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-primary);
         }
         
         .stat-label {
             color: var(--text-secondary);
-            font-size: 14px;
+            margin-top: 0.5rem;
         }
         
-        .stat-value {
-            font-weight: bold;
-            color: var(--text-primary);
+        .script-manager {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 1px solid var(--border-color);
         }
         
-        .admin-actions {
+        .script-form {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .btn-admin {
-            background: var(--accent-primary);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-admin:hover {
-            background: var(--accent-secondary);
-            transform: translateY(-2px);
-        }
-        
-        .btn-danger {
-            background: #e74c3c;
-        }
-        
-        .btn-success {
-            background: #27ae60;
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
         
         .form-group {
-            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
         
         .form-group label {
-            display: block;
-            margin-bottom: 5px;
+            font-weight: 600;
             color: var(--text-primary);
-            font-weight: bold;
         }
         
-        .form-group input, .form-group textarea, .form-group select {
-            width: 100%;
-            padding: 10px;
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            padding: 0.75rem;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            background: var(--bg-primary);
+            background: var(--bg-secondary);
             color: var(--text-primary);
+            font-family: 'Courier New', monospace;
         }
         
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
+        .form-group textarea {
+            min-height: 200px;
+            resize: vertical;
         }
         
-        .modal.show {
+        .script-actions {
             display: flex;
-            align-items: center;
-            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
         
-        .modal-content {
-            background: var(--bg-primary);
-            border-radius: 15px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
+        .btn-admin {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
         
-        .modal-header {
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--accent-secondary);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-admin:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .scripts-list {
+            margin-top: 2rem;
+        }
+        
+        .script-item {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+        }
+        
+        .script-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 1rem;
         }
         
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: var(--text-secondary);
+        .script-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .script-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-enabled {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-disabled {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .script-content {
+            background: var(--bg-card);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+        
+        .script-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: #28a745;
+        }
+        
+        .notification.error {
+            background: #dc3545;
+        }
+        
+        .notification.info {
+            background: #17a2b8;
         }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <!-- Header -->
         <div class="admin-header">
-            <h1><i class="fas fa-shield-alt"></i> VPN Script Hub - Yönetici Paneli</h1>
-            <p>Gerçek zamanlı istatistikler ve yönetim araçları</p>
+            <h1><i class="fas fa-shield-alt"></i> VPN Script Hub - Admin Panel</h1>
+            <p>Script yönetimi ve istatistikler</p>
         </div>
-
-        <!-- Stats Grid -->
-        <div class="admin-grid">
-            <!-- General Stats -->
-            <div class="admin-card">
-                <h3><i class="fas fa-chart-line"></i> Genel İstatistikler</h3>
-                <div class="stat-item">
-                    <span class="stat-label">Toplam İndirme</span>
-                    <span class="stat-value" id="total-downloads">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Aktif Kullanıcı</span>
-                    <span class="stat-value" id="active-users">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Son Güncelleme</span>
-                    <span class="stat-value" id="last-update">-</span>
-                </div>
+        
+        <div class="admin-stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-downloads">0</div>
+                <div class="stat-label">Toplam İndirme</div>
             </div>
-
-            <!-- Script Stats -->
-            <div class="admin-card">
-                <h3><i class="fas fa-code"></i> Script İstatistikleri</h3>
-                <div class="stat-item">
-                    <span class="stat-label">DarkTunnel</span>
-                    <span class="stat-value" id="darktunnel-downloads">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">HTTP Custom</span>
-                    <span class="stat-value" id="httpcustom-downloads">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Popülerlik Oranı</span>
-                    <span class="stat-value" id="popularity-ratio">-</span>
-                </div>
+            <div class="stat-card">
+                <div class="stat-number" id="active-users">0</div>
+                <div class="stat-label">Aktif Kullanıcı</div>
             </div>
-
-            <!-- User Stats -->
-            <div class="admin-card">
-                <h3><i class="fas fa-users"></i> Kullanıcı İstatistikleri</h3>
-                <div class="stat-item">
-                    <span class="stat-label">Toplam Kullanıcı</span>
-                    <span class="stat-value" id="total-users">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Yeni Kullanıcı (Bugün)</span>
-                    <span class="stat-value" id="new-users-today">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Ortalama İndirme</span>
-                    <span class="stat-value" id="avg-downloads">0</span>
-                </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-users">0</div>
+                <div class="stat-label">Toplam Kullanıcı</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="script-count">0</div>
+                <div class="stat-label">Script Sayısı</div>
             </div>
         </div>
-
-        <!-- Admin Actions -->
-        <div class="admin-card">
-            <h3><i class="fas fa-cogs"></i> Yönetici İşlemleri</h3>
-            <div class="admin-actions">
-                <button class="btn-admin" onclick="refreshStats()">
-                    <i class="fas fa-sync-alt"></i> İstatistikleri Yenile
-                </button>
-                <button class="btn-admin btn-success" onclick="showAddScriptModal()">
-                    <i class="fas fa-plus"></i> Yeni Script Ekle
-                </button>
-                <button class="btn-admin" onclick="showBroadcastModal()">
-                    <i class="fas fa-bullhorn"></i> Toplu Mesaj
-                </button>
-                <button class="btn-admin btn-danger" onclick="showAdminModal()">
-                    <i class="fas fa-user-shield"></i> Yönetici Ekle/Çıkar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Script Modal -->
-    <div class="modal" id="add-script-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Yeni Script Ekle</h3>
-                <button class="modal-close" onclick="hideModal('add-script-modal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form id="add-script-form">
+        
+        <div class="script-manager">
+            <h2><i class="fas fa-plus"></i> Yeni Script Ekle</h2>
+            <form class="script-form" id="add-script-form">
                 <div class="form-group">
-                    <label>Script ID</label>
-                    <input type="text" id="script-id" required placeholder="örn: newscript">
+                    <label for="script-id">Script ID:</label>
+                    <input type="text" id="script-id" placeholder="örn: darktunnel" required>
                 </div>
+                
                 <div class="form-group">
-                    <label>Script Adı</label>
-                    <input type="text" id="script-name" required placeholder="örn: Yeni VPN Script">
+                    <label for="script-name">Script Adı:</label>
+                    <input type="text" id="script-name" placeholder="örn: DarkTunnel" required>
                 </div>
+                
                 <div class="form-group">
-                    <label>Açıklama</label>
-                    <textarea id="script-description" required placeholder="Script açıklaması"></textarea>
+                    <label for="script-description">Açıklama:</label>
+                    <input type="text" id="script-description" placeholder="Script açıklaması" required>
                 </div>
+                
                 <div class="form-group">
-                    <label>Script İçeriği</label>
-                    <textarea id="script-content" required placeholder="# Script içeriği buraya"></textarea>
+                    <label for="script-filename">Dosya Adı:</label>
+                    <input type="text" id="script-filename" placeholder="örn: darktunnel.conf" required>
                 </div>
+                
                 <div class="form-group">
-                    <label>Dosya Adı</label>
-                    <input type="text" id="script-filename" required placeholder="örn: newscript.conf">
+                    <label for="script-content">Script İçeriği:</label>
+                    <textarea id="script-content" placeholder="Script konfigürasyonu buraya..." required></textarea>
                 </div>
-                <button type="submit" class="btn-admin btn-success">Script Ekle</button>
+                
+                <div class="script-actions">
+                    <button type="submit" class="btn-admin btn-primary">
+                        <i class="fas fa-plus"></i> Script Ekle
+                    </button>
+                    <button type="button" class="btn-admin btn-secondary" onclick="loadScripts()">
+                        <i class="fas fa-refresh"></i> Yenile
+                    </button>
+                </div>
             </form>
         </div>
-    </div>
-
-    <!-- Broadcast Modal -->
-    <div class="modal" id="broadcast-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Toplu Mesaj Gönder</h3>
-                <button class="modal-close" onclick="hideModal('broadcast-modal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form id="broadcast-form">
-                <div class="form-group">
-                    <label>Mesaj</label>
-                    <textarea id="broadcast-message" required placeholder="Göndermek istediğiniz mesaj"></textarea>
-                </div>
-                <button type="submit" class="btn-admin">Mesajı Gönder</button>
-            </form>
+        
+        <div class="scripts-list" id="scripts-list">
+            <!-- Scriptler buraya yüklenecek -->
         </div>
     </div>
-
+    
     <script src="admin.js"></script>
 </body>
 </html> 
