@@ -181,6 +181,7 @@ setInterval(updateStats, 30000); // Her 30 saniyede bir güncelle
 // Monetag Controller
 let monetagReady = false;
 let monetagPreloaded = false;
+let fallbackMode = false;
 
 // Initialize Monetag SDK
 function initializeMonetag() {
@@ -192,28 +193,47 @@ function initializeMonetag() {
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready();
             console.log('✅ Telegram WebApp SDK hazır');
+            
+            // Telegram WebApp'in hazır olduğundan emin ol
+            if (window.Telegram.WebApp.isExpanded) {
+                console.log('✅ Telegram WebApp genişletilmiş');
+            }
+        } else {
+            console.log('⚠️ Telegram WebApp SDK bulunamadı, normal web modunda çalışıyor');
         }
         
         // Monetag SDK'nın yüklenmesini bekle
         const checkMonetag = setInterval(() => {
-            if (window.show_9499819) {
+            if (window.show_9499819 && typeof window.show_9499819 === 'function') {
                 clearInterval(checkMonetag);
                 monetagReady = true;
                 console.log('✅ Monetag SDK başarıyla yüklendi');
-                preloadMonetagAd();
+                
+                // Telegram WebApp içinde mi kontrol et
+                if (window.Telegram && window.Telegram.WebApp) {
+                    console.log('✅ Telegram WebApp içinde çalışıyor');
+                    preloadMonetagAd();
+                } else {
+                    console.log('⚠️ Normal web modunda, fallback kullanılacak');
+                    fallbackMode = true;
+                }
             }
         }, 100);
         
-        // 10 saniye sonra timeout
+        // 5 saniye sonra timeout
         setTimeout(() => {
             if (!monetagReady) {
                 clearInterval(checkMonetag);
-                console.error('❌ Monetag SDK yüklenemedi');
+                console.error('❌ Monetag SDK yüklenemedi, fallback moduna geçiliyor');
+                fallbackMode = true;
+                monetagReady = true; // Fallback için true yap
             }
-        }, 10000);
+        }, 5000);
         
     } catch (error) {
         console.error('❌ Monetag SDK başlatılamadı:', error);
+        fallbackMode = true;
+        monetagReady = true; // Fallback için true yap
     }
 }
 
@@ -221,6 +241,11 @@ function initializeMonetag() {
 async function preloadMonetagAd() {
     if (!monetagReady) {
         console.error('❌ Monetag SDK henüz hazır değil');
+        return;
+    }
+    
+    if (fallbackMode) {
+        console.log('📦 Fallback modunda preload atlanıyor');
         return;
     }
     
@@ -234,6 +259,7 @@ async function preloadMonetagAd() {
         console.log('✅ Monetag reklamı preload edildi');
     } catch (error) {
         console.error('❌ Monetag reklamı preload edilemedi:', error);
+        fallbackMode = true;
     }
 }
 
@@ -258,6 +284,12 @@ async function showMonetagAd() {
         return false;
     }
     
+    // Fallback modunda sahte reklam göster
+    if (fallbackMode) {
+        console.log('📺 Fallback modunda sahte reklam gösteriliyor...');
+        return await showFallbackAd();
+    }
+    
     try {
         console.log('📺 Monetag reklamı gösteriliyor...');
         const userId = generateUserId();
@@ -272,8 +304,52 @@ async function showMonetagAd() {
         return true;
     } catch (error) {
         console.error('❌ Monetag reklamı gösterilemedi:', error);
-        return false;
+        console.log('🔄 Fallback moduna geçiliyor...');
+        fallbackMode = true;
+        return await showFallbackAd();
     }
+}
+
+// Fallback reklam göster (sahte reklam)
+async function showFallbackAd() {
+    return new Promise((resolve) => {
+        console.log('📺 Fallback reklamı gösteriliyor...');
+        
+        // Modal'ı güncelle
+        const adPlaceholder = adModal.querySelector('.ad-placeholder');
+        if (adPlaceholder) {
+            adPlaceholder.innerHTML = `
+                <i class="fas fa-ad"></i>
+                <p>Demo Reklam</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="timer">3</div>
+            `;
+        }
+        
+        // Timer ve progress
+        let timeLeft = 3;
+        const timerElement = adModal.querySelector('.timer');
+        const progressFill = adModal.querySelector('.progress-fill');
+        
+        const countdown = setInterval(() => {
+            timeLeft--;
+            if (timerElement) {
+                timerElement.textContent = timeLeft;
+            }
+            if (progressFill) {
+                progressFill.style.width = ((3 - timeLeft) / 3 * 100) + '%';
+            }
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                hideAdModal();
+                console.log('✅ Fallback reklamı tamamlandı');
+                resolve(true);
+            }
+        }, 1000);
+    });
 }
 
 // App State
@@ -448,8 +524,36 @@ document.querySelectorAll('.unlock-btn').forEach(btn => {
 function showAdModal() {
     console.log('🎬 showAdModal çağrıldı');
     
-    // Direkt Monetag reklamını göster, modal gösterme
-    console.log('🔄 Direkt Monetag reklamı gösteriliyor...');
+    // Modal'ı göster ve loading durumunu ayarla
+    adModal.classList.add('show');
+    
+    // Loading durumunu göster
+    const adPlaceholder = adModal.querySelector('.ad-placeholder');
+    if (adPlaceholder) {
+        adPlaceholder.innerHTML = `
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Reklam yükleniyor...</p>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%"></div>
+            </div>
+        `;
+    }
+    
+    // Progress bar animasyonu
+    let progress = 0;
+    const progressFill = adModal.querySelector('.progress-fill');
+    const progressInterval = setInterval(() => {
+        progress += 2;
+        if (progressFill) {
+            progressFill.style.width = progress + '%';
+        }
+        if (progress >= 100) {
+            clearInterval(progressInterval);
+        }
+    }, 50);
+    
+    // Monetag reklamını göster
+    console.log('🔄 Monetag reklamı gösteriliyor...');
     handleMonetagAd();
 }
 
@@ -469,14 +573,17 @@ async function handleMonetagAd() {
         
         if (adWatched) {
             // Kullanıcı reklamı tamamladı
+            hideAdModal();
             showNotification('✅ Reklam tamamlandı! Script indiriliyor...', 'success');
             showDownloadModal();
         } else {
             // Kullanıcı reklamı tamamlamadı
+            hideAdModal();
             showNotification('❌ Reklam tamamlanmadı. Lütfen tekrar deneyin.', 'error');
         }
     } catch (error) {
         console.error('Reklam gösterme hatası:', error);
+        hideAdModal();
         showNotification('❌ Reklam yüklenirken hata oluştu.', 'error');
     }
 }
