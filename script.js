@@ -1,6 +1,9 @@
 // Backend API URL'si
 const API_BASE_URL = 'http://localhost:3000/api';
 
+// Cache busting - Force reload updated script
+// Version: 1.0.1 - Fixed themeToggle errors
+
 // Telegram Web App Integration
 let tg = null;
 
