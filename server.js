@@ -3,10 +3,44 @@ const TelegramBot = require('node-telegram-bot-api');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 
 // Debug ve loglama sistemi
 const DEBUG_MODE = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development';
 const LOG_FILE = 'app.log';
+
+// Multer configuration for file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        // Keep original filename
+        cb(null, file.originalname);
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 1024 * 1024 // 1MB limit
+    },
+    fileFilter: function (req, file, cb) {
+        // Allow only specific file types
+        const allowedTypes = ['.conf', '.txt', '.json', '.yaml', '.yml'];
+        const fileExt = path.extname(file.originalname).toLowerCase();
+        
+        if (allowedTypes.includes(fileExt)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Desteklenmeyen dosya formatı. Sadece .conf, .txt, .json, .yaml, .yml dosyaları kabul edilir.'));
+        }
+    }
+});
 
 // Loglama fonksiyonu
 function log(level, message, data = null) {
@@ -467,9 +501,61 @@ app.post('/api/admin/add-script', (req, res) => {
         enabled: true
     };
     
+    writeDatabase(); // Değişiklikleri kaydet
+    
     log('info', 'Script added by admin', { adminId, scriptId: id, scriptName: name });
     
     res.json({ success: true, message: 'Script başarıyla eklendi' });
+});
+
+// File upload API endpoint
+app.post('/api/admin/upload-script', upload.single('scriptFile'), (req, res) => {
+    const { adminId, scriptId, scriptName, scriptDescription } = req.body;
+    
+    debug('Admin upload script API called', { adminId, scriptId, scriptName, ip: req.ip });
+    
+    if (!isAdmin(parseInt(adminId))) {
+        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
+        return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
+    }
+    
+    if (!req.file) {
+        return res.status(400).json({ success: false, error: 'Dosya yüklenmedi' });
+    }
+    
+    try {
+        // Read the uploaded file content
+        const fileContent = fs.readFileSync(req.file.path, 'utf8');
+        
+        // Add script to database
+        database.vpnScripts[scriptId] = {
+            name: scriptName,
+            description: scriptDescription,
+            content: fileContent,
+            filename: req.file.originalname,
+            enabled: true
+        };
+        
+        writeDatabase(); // Değişiklikleri kaydet
+        
+        log('info', 'Script file uploaded by admin', { 
+            adminId, 
+            scriptId, 
+            scriptName, 
+            filename: req.file.originalname,
+            fileSize: req.file.size 
+        });
+        
+        res.json({ 
+            success: true, 
+            message: 'Script dosyası başarıyla yüklendi',
+            filename: req.file.originalname
+        });
+        
+    } catch (error) {
+        log('error', 'File upload processing error', { error: error.message, adminId, scriptId });
+        res.status(500).json({ success: false, error: 'Dosya işlenirken hata oluştu' });
+    }
 });
 
 app.post('/api/admin/update-script', (req, res) => {

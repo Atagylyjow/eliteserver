@@ -286,6 +286,44 @@
             </form>
         </div>
         
+        <!-- Dosya Yükleme Bölümü -->
+        <div class="script-manager" style="margin-top: 2rem;">
+            <h2><i class="fas fa-upload"></i> Dosya Yükle</h2>
+            <form class="script-form" id="upload-form">
+                <div class="form-group">
+                    <label for="upload-script-id">Script ID:</label>
+                    <input type="text" id="upload-script-id" placeholder="örn: myvpn" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="upload-script-name">Script Adı:</label>
+                    <input type="text" id="upload-script-name" placeholder="örn: My VPN Config" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="upload-script-description">Açıklama:</label>
+                    <input type="text" id="upload-script-description" placeholder="Script açıklaması" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="upload-file">Dosya Seç:</label>
+                    <input type="file" id="upload-file" accept=".conf,.txt,.json,.yaml,.yml" required>
+                    <small style="color: var(--text-secondary); margin-top: 0.25rem;">
+                        Desteklenen formatlar: .conf, .txt, .json, .yaml, .yml
+                    </small>
+                </div>
+                
+                <div class="script-actions">
+                    <button type="submit" class="btn-admin btn-primary">
+                        <i class="fas fa-upload"></i> Dosya Yükle
+                    </button>
+                    <button type="button" class="btn-admin btn-secondary" onclick="clearUploadForm()">
+                        <i class="fas fa-times"></i> Temizle
+                    </button>
+                </div>
+            </form>
+        </div>
+        
         <div class="scripts-list" id="scripts-list">
             <!-- Scriptler buraya yüklenecek -->
         </div>

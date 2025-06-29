@@ -1,12 +1,13 @@
 {
   "stats": {
-    "totalDownloads": 17,
-    "activeUsers": 0,
+    "totalDownloads": 18,
+    "activeUsers": 2,
     "darktunnelDownloads": 3,
-    "httpcustomDownloads": 9,
+    "httpcustomDownloads": 10,
     "npvtunnelDownloads": 5,
     "shadowsocksDownloads": 0,
-    "lastUpdated": "2025-06-29T22:35:17.431Z"
+    "lastUpdated": "2025-06-29T22:57:15.633Z",
+    "totalUsers": 2
   },
   "users": {
     "anonymous": {
@@ -15,10 +16,10 @@
       "coins": 1
     },
     "7749779502": {
-      "downloads": 10,
+      "downloads": 11,
       "firstSeen": "2025-06-29T21:50:18.970Z",
-      "coins": 1,
-      "lastDownload": "2025-06-29T22:35:03.367Z"
+      "coins": 0,
+      "lastDownload": "2025-06-29T22:57:15.633Z"
     }
   },
   "admins": [
@@ -30,7 +31,7 @@
       "description": "Gelişmiş tünel teknolojisi ile güvenli bağlantı",
       "content": "# DarkTunnel VPN Configuration\n# Server: premium.darktunnel.com\n# Port: 443\n# Protocol: TLS\n\n[General]\nloglevel = notify\ninterface = 127.0.0.1\nport = 1080\nsocks-interface = 127.0.0.1\nsocks-port = 1081\nhttp-interface = 127.0.0.1\nhttp-port = 1082\n\n[Proxy]\nType = Shadowsocks\nServer = premium.darktunnel.com\nPort = 443\nMethod = chacha20-ietf-poly1305\nPassword = your_password_here\n\n[Proxy Group]\nProxy = select, auto, fallback\nauto = url-test, server-tcp, url = http://www.gstatic.com/generate_204\nfallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204\n\n[Rule]\nDOMAIN-SUFFIX,google.com,Proxy\nDOMAIN-SUFFIX,facebook.com,Proxy\nDOMAIN-SUFFIX,twitter.com,Proxy\nDOMAIN-SUFFIX,instagram.com,Proxy\nDOMAIN-SUFFIX,youtube.com,Proxy\nDOMAIN-SUFFIX,netflix.com,Proxy\nGEOIP,CN,DIRECT\nFINAL,DIRECT",
       "filename": "darktunnel.conf",
-      "enabled": true
+      "enabled": false
     },
     "httpcustom": {
       "name": "HTTP Custom",

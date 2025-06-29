@@ -22,6 +22,11 @@ function setupEventListeners() {
     if (addScriptForm) {
         addScriptForm.addEventListener('submit', handleAddScript);
     }
+    
+    const uploadForm = document.getElementById('upload-form');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', handleFileUpload);
+    }
 }
 
 // İstatistikleri yükle
@@ -303,6 +308,7 @@ window.editScript = editScript;
 window.toggleScript = toggleScript;
 window.deleteScript = deleteScript;
 window.resetForm = resetForm;
+window.clearUploadForm = clearUploadForm;
 
 // Yeni script ekleme modalını göster
 function showAddScriptModal() {
@@ -367,4 +373,78 @@ document.addEventListener('keydown', function(e) {
             modal.classList.remove('show');
         });
     }
-}); 
+});
+
+// Handle file upload
+async function handleFileUpload(event) {
+    event.preventDefault();
+    
+    const fileInput = document.getElementById('upload-file');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showNotification('❌ Lütfen bir dosya seçin', 'error');
+        return;
+    }
+    
+    // Check file size (max 1MB)
+    if (file.size > 1024 * 1024) {
+        showNotification('❌ Dosya boyutu 1MB\'dan büyük olamaz', 'error');
+        return;
+    }
+    
+    const scriptData = {
+        id: document.getElementById('upload-script-id').value,
+        name: document.getElementById('upload-script-name').value,
+        description: document.getElementById('upload-script-description').value,
+        filename: file.name // Use original filename
+    };
+    
+    try {
+        // Read file content
+        const content = await readFileAsText(file);
+        
+        // Add content to script data
+        scriptData.content = content;
+        
+        // Upload to server
+        const response = await fetch(`${API_BASE_URL}/admin/add-script`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID,
+                scriptData: scriptData
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification('✅ Dosya başarıyla yüklendi!', 'success');
+            clearUploadForm();
+            loadScripts();
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Dosya yüklenemedi');
+        }
+    } catch (error) {
+        console.error('❌ Dosya yükleme hatası:', error);
+        showNotification('❌ Dosya yüklenemedi: ' + error.message, 'error');
+    }
+}
+
+// Read file as text
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(new Error('Dosya okunamadı'));
+        reader.readAsText(file);
+    });
+}
+
+// Clear upload form
+function clearUploadForm() {
+    document.getElementById('upload-form').reset();
+} 
