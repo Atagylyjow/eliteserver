@@ -183,6 +183,72 @@ GEOIP,CN,DIRECT
 FINAL,DIRECT`,
             filename: 'httpcustom.conf',
             enabled: true
+        },
+        npvtunnel: {
+            name: 'NPV Tunnel',
+            description: 'Gelişmiş tünel teknolojisi ile hızlı ve güvenli bağlantı',
+            content: `# NPV Tunnel Configuration
+# Server: npv-tunnel.example.com
+# Port: 443
+# Protocol: TLS
+
+[General]
+loglevel = notify
+interface = 127.0.0.1
+port = 1080
+socks-interface = 127.0.0.1
+socks-port = 1081
+http-interface = 127.0.0.1
+http-port = 1082
+
+[Proxy]
+Type = Shadowsocks
+Server = npv-tunnel.example.com
+Port = 443
+Method = aes-256-gcm
+Password = your_password_here
+
+[Proxy Group]
+Proxy = select, auto, fallback
+auto = url-test, server-tcp, url = http://www.gstatic.com/generate_204
+fallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204
+
+[Rule]
+DOMAIN-SUFFIX,google.com,Proxy
+DOMAIN-SUFFIX,facebook.com,Proxy
+DOMAIN-SUFFIX,twitter.com,Proxy
+DOMAIN-SUFFIX,instagram.com,Proxy
+DOMAIN-SUFFIX,youtube.com,Proxy
+DOMAIN-SUFFIX,netflix.com,Proxy
+GEOIP,CN,DIRECT
+FINAL,DIRECT`,
+            filename: 'npvtunnel.conf',
+            enabled: true
+        },
+        shadowsocks: {
+            name: 'Shadowsocks',
+            description: 'Güvenli proxy protokolü ile şifreli bağlantı',
+            content: `# Shadowsocks Configuration
+# Server: ss-server.example.com
+# Port: 8388
+# Method: aes-256-gcm
+# Password: your_password_here
+
+{
+  "server": "ss-server.example.com",
+  "server_port": 8388,
+  "password": "your_password_here",
+  "method": "aes-256-gcm",
+  "timeout": 300,
+  "fast_open": false,
+  "reuse_port": true,
+  "local_address": "127.0.0.1",
+  "local_port": 1080,
+  "mode": "tcp_and_udp"
+}`,
+            filename: 'shadowsocks.json',
+            enabled: true,
+            showConfig: true
         }
     }
 };
@@ -745,7 +811,7 @@ bot.on('web_app_data', (msg) => {
         const thankYouMessage = `
 ✅ **Script başarıyla indirildi!**
 
-📁 Script: ${data.script === 'darktunnel' ? 'DarkTunnel' : 'HTTP Custom'}
+📁 Script: ${data.script === 'darktunnel' ? 'DarkTunnel' : data.script === 'npvtunnel' ? 'NPV Tunnel' : 'Shadowsocks'}
 ⏰ Tarih: ${new Date(data.timestamp).toLocaleString('tr-TR')}
 
 💡 **Kurulum İpuçları:**

@@ -136,12 +136,17 @@ function getUserId() {
 async function loadUserCoins() {
     try {
         userId = getUserId();
+        console.log('👤 User ID:', userId);
+        
         const response = await fetch(`${API_BASE_URL}/user/${userId}/coins`);
         
         if (response.ok) {
             const data = await response.json();
             userCoins = data.coins;
             updateCoinDisplay();
+            console.log('✅ Coin yüklendi:', userCoins);
+        } else {
+            console.error('❌ Coin yükleme hatası:', response.status);
         }
     } catch (error) {
         console.error('❌ Coin yüklenirken hata:', error);
@@ -158,6 +163,13 @@ function updateCoinDisplay() {
 // Add coins to user
 async function addCoins(amount) {
     try {
+        // Ensure userId is set
+        if (!userId) {
+            userId = getUserId();
+        }
+        
+        console.log('💰 Coin ekleniyor:', { userId, amount });
+        
         const response = await fetch(`${API_BASE_URL}/user/${userId}/add-coins`, {
             method: 'POST',
             headers: {
@@ -171,10 +183,13 @@ async function addCoins(amount) {
             userCoins = data.coins;
             updateCoinDisplay();
             showNotification(`✅ ${amount} coin kazandınız!`, 'success');
+            console.log('✅ Coin eklendi:', userCoins);
+        } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
     } catch (error) {
         console.error('❌ Coin eklenirken hata:', error);
-        showNotification('❌ Coin eklenemedi', 'error');
+        showNotification('❌ Coin eklenemedi: ' + error.message, 'error');
     }
 }
 
@@ -223,6 +238,11 @@ if (watchAdBtn) {
         watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
         
         try {
+            // Ensure userId is set before showing ad
+            if (!userId) {
+                userId = getUserId();
+            }
+            
             // Check if Monetag SDK is loaded
             if (typeof window.show_9499819 !== 'function') {
                 throw new Error('Monetag SDK yüklenmedi');
@@ -297,7 +317,13 @@ function toggleTheme() {
 // Download Script Function
 async function downloadScript(scriptName) {
     try {
-        console.log(`🔽 '${scriptName}' scripti indiriliyor...`);
+        console.log(`🔽 '${scriptName}' scripti işleniyor...`);
+
+        // Check if it's Shadowsocks (show config instead of download)
+        if (scriptName === 'shadowsocks') {
+            await showShadowsocksConfig();
+            return;
+        }
 
         // Backend'e indirme isteği gönder
         const response = await fetch(`${API_BASE_URL}/download/${scriptName}`, {
@@ -334,8 +360,72 @@ async function downloadScript(scriptName) {
         }
 
     } catch (error) {
-        console.error('❌ Script indirme hatası:', error);
-        showNotification(`❌ Script indirilemedi: ${error.message}`, 'error');
+        console.error('❌ Script işleme hatası:', error);
+        showNotification(`❌ Script işlenemedi: ${error.message}`, 'error');
+    }
+}
+
+// Show Shadowsocks Configuration
+async function showShadowsocksConfig() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/scripts`);
+        
+        if (!response.ok) {
+            throw new Error('Script bilgileri alınamadı');
+        }
+        
+        const scripts = await response.json();
+        const shadowsocks = scripts.shadowsocks;
+        
+        if (shadowsocks && shadowsocks.content) {
+            // Create modal to show configuration
+            const configModal = document.createElement('div');
+            configModal.className = 'modal';
+            configModal.style.display = 'block';
+            configModal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3>Shadowsocks Konfigürasyonu</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="config-display">
+                            <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.9rem;">${shadowsocks.content}</pre>
+                        </div>
+                        <div class="config-actions" style="margin-top: 1rem; text-align: center;">
+                            <button class="btn btn-primary" onclick="copyConfig()">
+                                <i class="fas fa-copy"></i>
+                                Kopyala
+                            </button>
+                            <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                                <i class="fas fa-times"></i>
+                                Kapat
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(configModal);
+            
+            // Add copy function to window
+            window.copyConfig = function() {
+                navigator.clipboard.writeText(shadowsocks.content).then(() => {
+                    showNotification('✅ Konfigürasyon kopyalandı!', 'success');
+                }).catch(() => {
+                    showNotification('❌ Kopyalama başarısız', 'error');
+                });
+            };
+            
+        } else {
+            throw new Error('Shadowsocks konfigürasyonu bulunamadı');
+        }
+        
+    } catch (error) {
+        console.error('❌ Shadowsocks konfigürasyonu gösterilirken hata:', error);
+        showNotification('❌ Konfigürasyon gösterilemedi: ' + error.message, 'error');
     }
 }
 
