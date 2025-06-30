@@ -1,18 +1,5 @@
-// Backend API URL'si - Dinamik olarak belirlenir
-let API_BASE_URL;
-
-// Detect environment and set appropriate API URL
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    // Local development
-    API_BASE_URL = 'http://localhost:3000/api';
-} else if (window.location.hostname.includes('github.io')) {
-    // GitHub Pages - use your computer's IP address
-    API_BASE_URL = 'http://192.168.1.100:3000/api'; // Your actual IP address
-    console.warn('⚠️ GitHub Pages detected - using local IP for API calls');
-} else {
-    // Other domains - assume same origin
-    API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:3000/api`;
-}
+// Backend API URL'si - Kalıcı sunucu adresi
+const API_BASE_URL = 'https://helpful-tar-lodge.glitch.me/api';
 
 console.log('🌐 API Base URL:', API_BASE_URL);
 console.log('📍 Current hostname:', window.location.hostname);
