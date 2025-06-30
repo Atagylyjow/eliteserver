@@ -625,9 +625,9 @@ function showNotification(message, type = 'info') {
 function initializeDOMElements() {
     userCoinsElement = document.getElementById('user-coins');
     addCoinsBtn = document.getElementById('add-coins-btn');
-    coinModal = document.getElementById('coin-modal');
-    coinModalClose = document.getElementById('coin-modal-close');
-    watchAdBtn = document.getElementById('watch-ad-btn');
+    coinModal = document.getElementById('adModal');
+    coinModalClose = document.getElementById('ad-modal-close');
+    watchAdBtn = document.getElementById('watchAdButton');
     themeToggle = document.getElementById('theme-toggle');
     
     console.log('🔧 DOM elementleri başlatıldı:', {
@@ -653,22 +653,13 @@ function setupEventListeners() {
     // Coin modal event listeners
     if (addCoinsBtn) {
         addCoinsBtn.addEventListener('click', () => {
-            if (coinModal) {
-                coinModal.style.display = 'block';
+            const adModal = bootstrap.Modal.getInstance(document.getElementById('adModal'));
+            if (adModal) {
+                adModal.show();
                 console.log('✅ Coin modal açıldı');
             }
         });
         console.log('✅ Add coins button listener eklendi');
-    }
-
-    if (coinModalClose) {
-        coinModalClose.addEventListener('click', () => {
-            if (coinModal) {
-                coinModal.style.display = 'none';
-                console.log('✅ Coin modal kapatıldı');
-            }
-        });
-        console.log('✅ Coin modal close listener eklendi');
     }
 
     // Watch ad button
