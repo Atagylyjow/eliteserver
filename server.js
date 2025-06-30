@@ -88,12 +88,7 @@ bot.on('error', (error) => {
 
 // Middleware
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'https://atagylyjow.github.io',
-        'https://helpful-tar-lodge.glitch.me'
-    ],
+    origin: '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-User-ID']
@@ -353,8 +348,20 @@ function getUserData(userId) {
 
 // Yönetici kontrolü
 function isAdmin(chatId) {
-    return database.admins.includes(chatId);
+    return database.admins.includes(parseInt(chatId, 10));
 }
+
+// Admin kimlik doğrulama middleware'i
+const adminAuth = (req, res, next) => {
+    const adminId = req.query.adminId || req.body.adminId;
+    if (!adminId) {
+        return res.status(401).json({ success: false, error: 'Admin ID gerekli' });
+    }
+    if (!isAdmin(adminId)) {
+        return res.status(403).json({ success: false, error: 'Yetkisiz erişim' });
+    }
+    next();
+};
 
 // İstatistikleri güncelle
 function updateStats(scriptType) {
@@ -433,6 +440,17 @@ app.get('/api/download/:scriptId', (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${script.filename}"`);
     res.setHeader('X-Filename', script.filename);
     res.send(script.content);
+});
+
+// Admin Routes
+app.get('/api/admin/users', adminAuth, (req, res) => {
+    try {
+        log('info', 'Admin requested user list', { adminId: req.query.adminId });
+        res.json({ success: true, users: database.users });
+    } catch (error) {
+        log('error', 'Failed to get users for admin', { error: error.message });
+        res.status(500).json({ success: false, error: 'Kullanıcılar alınamadı' });
+    }
 });
 
 // Kullanıcı coin'lerini getir
@@ -723,95 +741,24 @@ app.post('/api/admin/delete-script', (req, res) => {
     }
 });
 
-app.get('/api/admin/users', (req, res) => {
-    const { adminId } = req.query;
-    
-    debug('Admin users API called', { adminId, ip: req.ip });
-    
-    if (!isAdmin(parseInt(adminId))) {
-        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
-        return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
-    }
-    
-    log('info', 'Users data requested by admin', { 
-        adminId, 
-        userCount: Object.keys(database.users).length 
-    });
-    
-    res.json({ success: true, users: database.users });
-});
-
 // Admin coin ekleme API
-app.post('/api/admin/add-coins', (req, res) => {
-    const { adminId, userId, amount, reason } = req.body;
-    
-    debug('Admin add coins API called', { adminId, userId, amount, reason, ip: req.ip });
-    
-    if (!isAdmin(parseInt(adminId))) {
-        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
-        return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
-    }
-    
-    if (!userId || !amount || amount <= 0) {
-        return res.status(400).json({ success: false, error: 'Geçerli kullanıcı ID ve coin miktarı gerekli' });
-    }
-    
-    let userData = null;
-    let targetUserId = null;
+app.post('/api/admin/add-coins', adminAuth, (req, res) => {
+    const { userId, amount } = req.body;
 
-    // Find user by various methods to ensure backward compatibility
-    // Method 1: Direct ID match (for new, non-hashed IDs)
-    if (database.users[userId]) {
-        userData = database.users[userId];
-        targetUserId = userId;
-    } 
-    // Method 2: Normalized ID match (for old, hashed IDs)
-    else {
-        const normalizedId = normalizeUserId(userId);
-        if (database.users[normalizedId]) {
-            userData = database.users[normalizedId];
-            targetUserId = normalizedId;
-        }
-        // Method 3: Search by originalId (catch-all)
-        else {
-            const foundUserEntry = Object.entries(database.users).find(
-                ([key, user]) => user.originalId === userId
-            );
-            if (foundUserEntry) {
-                targetUserId = foundUserEntry[0];
-                userData = foundUserEntry[1];
-            }
-        }
+    if (!userId || !amount || amount <= 0) {
+        return res.status(400).json({ success: false, error: 'Kullanıcı ID ve miktar gerekli' });
     }
-    
+
+    const userData = getUserData(userId);
     if (!userData) {
-        log('warn', 'Admin add coins failed - user not found', { adminId, userId });
-        return res.status(404).json({ success: false, error: `Kullanıcı bulunamadı: ${userId}` });
+        return res.status(404).json({ success: false, error: 'Kullanıcı bulunamadı' });
     }
-    
-    // Coin ekle
-    const oldCoins = userData.coins || 0;
-    userData.coins = oldCoins + amount;
-    
-    // Veritabanını kaydet
+
+    userData.coins = (userData.coins || 0) + amount;
     writeDatabase();
-    
-    log('info', 'Coins added by admin', { 
-        adminId, 
-        targetUserId: targetUserId,
-        originalIdAttempt: userId,
-        amount, 
-        reason,
-        oldCoins,
-        newCoins: userData.coins
-    });
-    
-    res.json({ 
-        success: true, 
-        message: `${amount} coin başarıyla eklendi`,
-        username: userData.originalId || targetUserId, // Display a useful identifier
-        userCoins: userData.coins
-    });
+
+    log('info', 'Admin added coins to user', { adminId: req.body.adminId, userId, amount });
+    res.json({ success: true, newBalance: userData.coins });
 });
 
 // Bot komutları
