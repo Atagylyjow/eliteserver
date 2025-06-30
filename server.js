@@ -59,6 +59,52 @@ async function connectToDb() {
                 log('info', 'Varsayılan yönetici eklendi.');
             }
         }
+
+        // Başlangıç scriptlerini ekle (eğer hiç script yoksa)
+        const scriptCount = await db.collection('vpnScripts').countDocuments();
+        if (scriptCount === 0) {
+            log('info', 'Veritabanında hiç script bulunamadı. Varsayılan scriptler ekleniyor...');
+            const defaultScripts = [
+                { 
+                    name: "DarkTunnel", 
+                    type: "darktunnel", 
+                    content: "DarkTunnel için varsayılan script içeriği. Lütfen düzenleyin.", 
+                    filename: "darktunnel_default.conf", 
+                    enabled: true, 
+                    downloads: 0,
+                    createdAt: new Date()
+                },
+                { 
+                    name: "HTTP Custom", 
+                    type: "httpcustom",
+                    content: "HTTP Custom için varsayılan script içeriği. Lütfen düzenleyin.", 
+                    filename: "httpcustom_default.hc", 
+                    enabled: true, 
+                    downloads: 0,
+                    createdAt: new Date()
+                },
+                { 
+                    name: "NPV Tunnel", 
+                    type: "npvtunnel",
+                    content: "NPV Tunnel için varsayılan script içeriği. Lütfen düzenleyin.", 
+                    filename: "npvtunnel_default.npv4", 
+                    enabled: true, 
+                    downloads: 0,
+                    createdAt: new Date()
+                },
+                { 
+                    name: "ShadowSocks", 
+                    type: "shadowsocks",
+                    content: "ShadowSocks için varsayılan script içeriği. Lütfen düzenleyin.", 
+                    filename: "shadowsocks_default.json", 
+                    enabled: true, 
+                    downloads: 0,
+                    createdAt: new Date()
+                }
+            ];
+            await db.collection('vpnScripts').insertMany(defaultScripts);
+            log('info', '4 adet varsayılan script başarıyla eklendi.');
+        }
     } catch (error) {
         log('error', 'MongoDB bağlantı hatası', { error: error.message });
         process.exit(1); // Hata durumunda uygulamayı sonlandır
