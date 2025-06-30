@@ -325,6 +325,7 @@ function hideModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
 }
 
+/*
 // Toplu mesaj formu
 document.getElementById('broadcast-form').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -358,6 +359,7 @@ document.getElementById('broadcast-form').addEventListener('submit', async funct
         showNotification('Toplu mesaj gönderilemedi', 'error');
     }
 });
+*/
 
 // Modal dışına tıklandığında kapat
 window.addEventListener('click', function(e) {
