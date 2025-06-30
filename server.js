@@ -71,13 +71,8 @@ function errorHandler(err, req, res, next) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Bot token'ını güvenli bir şekilde ortam değişkenlerinden al
-const token = process.env.BOT_TOKEN;
-
-if (!token) {
-    log('error', 'Bot token bulunamadı! Lütfen .env dosyasını kontrol edin.');
-    process.exit(1); // Token yoksa uygulamayı sonlandır
-}
+// Bot token'ınızı buraya yazın
+const token = '7762459827:AAFFQRGpSphgUqw2MHhMngCMQeBHZLHrHCo';
 
 // Bot oluştur
 const bot = new TelegramBot(token, { polling: true });

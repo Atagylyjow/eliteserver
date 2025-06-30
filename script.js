@@ -270,62 +270,87 @@ async function addCoins(amount) {
 
 // Watch Ad Function
 async function watchAd() {
-    const watchButton = document.getElementById('watchAdButton');
-    const spinner = watchButton.querySelector('.fa-spinner');
-    const buttonText = watchButton.querySelector('.button-text');
+    if (!watchAdBtn) {
+        console.error('❌ Watch ad button not found');
+        return;
+    }
 
-    watchButton.disabled = true;
-    if(spinner) spinner.style.display = 'inline-block';
-    if(buttonText) buttonText.textContent = 'Yükleniyor...';
+    watchAdBtn.disabled = true;
+    watchAdBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reklam Yükleniyor...';
 
     try {
-        await showRewardedPopupAd(); // Reverted to the popup ad function
-        await addCoins(1);
-
-        const adModalEl = document.getElementById('adModal');
-        if (adModalEl) {
-            const adModal = bootstrap.Modal.getInstance(adModalEl);
-            if (adModal) adModal.hide();
+        console.log('🎬 Reklam izleme başlatılıyor...');
+        
+        // Show the rewarded popup ad, but don't wait for it to finish
+        showRewardedPopupAd();
+        
+        // Add coins after 3 seconds, regardless of ad completion
+        setTimeout(async () => {
+            console.log('💰 3 saniye geçti, coin ekleniyor...');
+            await addCoins(1);
+            
+            // Re-enable the button after coin is added
+            watchAdBtn.disabled = false;
+            watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
+        }, 3000); // 3 saniye
+        
+        // Close the modal immediately
+        if (coinModal) {
+            coinModal.style.display = 'none';
         }
-        showNotification('✅ 1 coin eklendi!', 'success');
+        
     } catch (error) {
-        console.error('❌ Reklam izleme hatası:', error);
-        showNotification(error.message || 'Reklam gösterilemedi. Lütfen tekrar deneyin.', 'error');
-    } finally {
-        watchButton.disabled = false;
-        if(spinner) spinner.style.display = 'none';
-        if(buttonText) buttonText.textContent = 'Reklam İzle';
+        console.error('❌ Reklam başlatma hatası:', error);
+        showNotification('❌ Reklam başlatılamadı: ' + error.message, 'error');
+        // Re-enable button on error
+        watchAdBtn.disabled = false;
+        watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
     }
 }
 
-// Show Monetag Rewarded Popup Ad (Reverted to old system)
+// Show Monetag Rewarded Popup Ad
 function showRewardedPopupAd() {
     return new Promise((resolve, reject) => {
-        const userId = getUserId();
-        console.log(`🎬 Monetag Popup reklamı gösteriliyor... Kullanıcı: ${userId}`);
-
+        // Get user ID for tracking
+        const ymid = getUserId();
+        
+        console.log('🎬 Monetag Rewarded Popup reklamı gösteriliyor...', { ymid });
+        
+        // Check if Monetag SDK is loaded
         if (typeof window.show_9499819 !== 'function') {
-            console.warn('⚠️ Monetag SDK yüklenmedi, test için simüle ediliyor...');
-            setTimeout(() => resolve(), 1500); // Simulate success for testing
+            console.warn('⚠️ Monetag SDK yüklenmedi, simüle ediliyor...');
+            // Simulate ad view for testing
+            setTimeout(() => {
+                console.log('✅ Simüle edilmiş reklam tamamlandı');
+                resolve();
+            }, 2000); // 2 saniye bekle
             return;
         }
-
-        const adTimeout = setTimeout(() => {
-            console.warn('🕒 Reklam zaman aşımına uğradı, ancak başarılı sayılıyor.');
+        
+        // Add timeout for ad loading
+        const timeout = setTimeout(() => {
+            console.warn('⚠️ Reklam yükleme zaman aşımı, simüle ediliyor...');
             resolve();
-        }, 8000); // 8 seconds timeout
-
-        window.show_9499819({
+        }, 10000); // 10 saniye timeout
+        
+        // Show the rewarded popup ad
+        window.show_9499819({ 
             type: 'pop',
-            ymid: userId
+            ymid: ymid,
+            requestVar: 'coin-earning'
         }).then(() => {
-            clearTimeout(adTimeout);
-            console.log('✅ Reklam penceresi başarıyla tetiklendi.');
+            clearTimeout(timeout);
+            console.log('✅ Rewarded Popup reklamı başarıyla tamamlandı');
             resolve();
-        }).catch(error => {
-            clearTimeout(adTimeout);
-            console.error('❌ Reklam penceresi açılamadı:', error);
-            reject(new Error('Reklam engellleyici veya tarayıcı hatası nedeniyle reklam açılamadı.'));
+        }).catch((error) => {
+            clearTimeout(timeout);
+            console.error('❌ Rewarded Popup reklamı hatası:', error);
+            console.warn('⚠️ Reklam hatası, simüle ediliyor...');
+            // Simulate successful ad view on error
+            setTimeout(() => {
+                console.log('✅ Hata sonrası simüle edilmiş reklam tamamlandı');
+                resolve();
+            }, 2000);
         });
     });
 }
@@ -603,9 +628,9 @@ function showNotification(message, type = 'info') {
 function initializeDOMElements() {
     userCoinsElement = document.getElementById('user-coins');
     addCoinsBtn = document.getElementById('add-coins-btn');
-    coinModal = document.getElementById('adModal');
-    coinModalClose = document.getElementById('ad-modal-close');
-    watchAdBtn = document.getElementById('watchAdButton');
+    coinModal = document.getElementById('coin-modal');
+    coinModalClose = document.getElementById('coin-modal-close');
+    watchAdBtn = document.getElementById('watch-ad-btn');
     themeToggle = document.getElementById('theme-toggle');
     
     console.log('🔧 DOM elementleri başlatıldı:', {
@@ -631,13 +656,22 @@ function setupEventListeners() {
     // Coin modal event listeners
     if (addCoinsBtn) {
         addCoinsBtn.addEventListener('click', () => {
-            const adModal = bootstrap.Modal.getInstance(document.getElementById('adModal'));
-            if (adModal) {
-                adModal.show();
+            if (coinModal) {
+                coinModal.style.display = 'block';
                 console.log('✅ Coin modal açıldı');
             }
         });
         console.log('✅ Add coins button listener eklendi');
+    }
+
+    if (coinModalClose) {
+        coinModalClose.addEventListener('click', () => {
+            if (coinModal) {
+                coinModal.style.display = 'none';
+                console.log('✅ Coin modal kapatıldı');
+            }
+        });
+        console.log('✅ Coin modal close listener eklendi');
     }
 
     // Watch ad button
