@@ -663,7 +663,7 @@ Aşağıdaki butona tıklayarak web uygulamasına erişebilirsiniz.
         inline_keyboard: [
             [{
                 text: '🚀 Web Uygulamasını Aç',
-                web_app: { url: `https://tg-web-app1.onrender.com/` }
+                web_app: { url: `https://tg-web-app-1.onrender.com/` }
             }],
             [{
                 text: '📊 İstatistikler',
@@ -1180,13 +1180,13 @@ async function startServer() {
         log('info', `🚀 VPN Script Hub Server başlatıldı!`, {
             port: PORT,
             botToken: `***${token.slice(-6)}`,
-            webAppUrl: `https://tg-web-app1.onrender.com/`,
+            webAppUrl: `https://tg-web-app-1.onrender.com/`,
             debugMode: DEBUG_MODE,
             logFile: LOG_FILE
         });
         console.log(`📡 Port: ${PORT}`);
         console.log(`🤖 Bot Token: ${token}`);
-        console.log(`🌐 Web App URL: https://tg-web-app1.onrender.com/`);
+        console.log(`🌐 Web App URL: https://tg-web-app-1.onrender.com/`);
         console.log(`🔧 Debug Mode: ${DEBUG_MODE}`);
         console.log(`📝 Log File: ${LOG_FILE}`);
     });
