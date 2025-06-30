@@ -141,7 +141,7 @@ async function handleAddScript(event) {
         });
         
         if (response.ok) {
-            const result = await response.json();
+        const result = await response.json();
             showNotification('✅ Script başarıyla eklendi!', 'success');
             event.target.reset();
             loadScripts();
@@ -375,7 +375,7 @@ document.addEventListener('keydown', function(e) {
             modal.classList.remove('show');
         });
     }
-});
+}); 
 
 // Handle file upload
 async function handleFileUpload(event) {

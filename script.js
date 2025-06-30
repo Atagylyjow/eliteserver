@@ -177,7 +177,7 @@ async function loadUserCoins() {
         }
         
         console.log(`💰 ${currentUserId} için coinler yükleniyor...`);
-        const response = await fetch(`${API_BASE_URL}/user/${currentUserId}/coins`);
+        const response = await fetch(`${API_BASE_URL}/user/${currentUserId}/coins?user_id=${currentUserId}`);
         
         if (response.ok) {
             const data = await response.json();
@@ -244,7 +244,7 @@ async function addCoins(amount) {
         
         console.log('💰 Coin ekleniyor:', { userId, amount });
         
-        const response = await fetch(`${API_BASE_URL}/user/${userId}/add-coins`, {
+        const response = await fetch(`${API_BASE_URL}/user/${userId}/add-coins?user_id=${userId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -389,7 +389,7 @@ async function downloadScript(scriptName) {
         await deductCoins(price);
 
         // Download the script
-        const response = await fetch(`${API_BASE_URL}/download/${scriptName}`, {
+        const response = await fetch(`${API_BASE_URL}/download/${scriptName}?user_id=${currentUserId}`, {
             method: 'GET'
         });
 
@@ -416,8 +416,8 @@ async function downloadScript(scriptName) {
         
         // Clean up
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
+    URL.revokeObjectURL(url);
+    
         showNotification(`✅ '${scriptName}' başarıyla satın alındı ve indirildi! (${price} coin düşüldü)`, 'success');
 
     } catch (error) {
@@ -442,14 +442,14 @@ async function deductCoins(amount) {
         
         console.log('💰 Coin düşülüyor:', { userId, amount });
         
-        const response = await fetch(`${API_BASE_URL}/user/${userId}/deduct-coins`, {
+        const response = await fetch(`${API_BASE_URL}/user/${userId}/deduct-coins?user_id=${userId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ amount })
         });
-
+        
         if (response.ok) {
             const data = await response.json();
             userCoins = data.coins;

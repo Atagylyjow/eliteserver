@@ -315,6 +315,28 @@ function normalizeUserId(userId) {
     return Math.abs(hash).toString();
 }
 
+// Request'ten user ID'yi al
+function getUserId(req) {
+    // Telegram WebApp'den user ID'yi al
+    if (req.body && req.body.user && req.body.user.id) {
+        return req.body.user.id.toString();
+    }
+    
+    // Query parameter'dan al
+    if (req.query && req.query.user_id) {
+        return req.query.user_id.toString();
+    }
+    
+    // Headers'dan al
+    if (req.headers && req.headers['x-user-id']) {
+        return req.headers['x-user-id'].toString();
+    }
+    
+    // IP adresini kullan (fallback)
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    return `ip_${ip.replace(/[^a-zA-Z0-9]/g, '')}`;
+}
+
 // Kullanıcı verilerini al veya oluştur
 function getUserData(userId) {
     const normalizedId = normalizeUserId(userId);
