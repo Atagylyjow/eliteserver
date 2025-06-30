@@ -1,7 +1,5 @@
-// Backend API URL'si - Dinamik olarak belirlenir
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? 'http://localhost:3000/api' 
-    : `${window.location.protocol}//${window.location.hostname}:3000/api`;
+// Backend API URL'si - Sunucunun çalıştığı Glitch adresi
+const API_BASE_URL = 'https://helpful-tar-lodge.glitch.me/api';
 
 // Admin ID (kendi chat ID'nizi buraya yazın)
 const ADMIN_ID = 7749779502; // Buraya kendi chat ID'nizi yazın
@@ -324,7 +322,7 @@ function showBroadcastModal() {
 
 // Modal'ı gizle
 function hideModal(modalId) {
-    document.getElementById(modalId).classList.remove('show');
+    document.getElementById(modalId).style.display = 'none';
 }
 
 // Toplu mesaj formu
