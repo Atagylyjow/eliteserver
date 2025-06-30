@@ -305,26 +305,11 @@ function writeDatabase() {
 
 // Kullanıcı ID'lerini normalize et
 function normalizeUserId(userId) {
-    if (!userId || userId === 'anonymous') {
+    if (!userId) {
         return 'anonymous';
     }
-    
-    // String'e çevir ve temizle
-    const cleanId = userId.toString().trim();
-    
-    // Sadece sayısal karakterler varsa sayı olarak döndür
-    if (/^\d+$/.test(cleanId)) {
-        return cleanId;
-    }
-    
-    // Diğer durumlar için hash oluştur
-    let hash = 0;
-    for (let i = 0; i < cleanId.length; i++) {
-        const char = cleanId.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // 32-bit integer'a çevir
-    }
-    return Math.abs(hash).toString();
+    // String'e çevir ve temizle, başka bir işlem yapma
+    return userId.toString().trim();
 }
 
 // Request'ten user ID'yi al
@@ -771,8 +756,38 @@ app.post('/api/admin/add-coins', (req, res) => {
         return res.status(400).json({ success: false, error: 'Geçerli kullanıcı ID ve coin miktarı gerekli' });
     }
     
-    // Kullanıcı verilerini al veya oluştur
-    const userData = getUserData(userId);
+    let userData = null;
+    let targetUserId = null;
+
+    // Find user by various methods to ensure backward compatibility
+    // Method 1: Direct ID match (for new, non-hashed IDs)
+    if (database.users[userId]) {
+        userData = database.users[userId];
+        targetUserId = userId;
+    } 
+    // Method 2: Normalized ID match (for old, hashed IDs)
+    else {
+        const normalizedId = normalizeUserId(userId);
+        if (database.users[normalizedId]) {
+            userData = database.users[normalizedId];
+            targetUserId = normalizedId;
+        }
+        // Method 3: Search by originalId (catch-all)
+        else {
+            const foundUserEntry = Object.entries(database.users).find(
+                ([key, user]) => user.originalId === userId
+            );
+            if (foundUserEntry) {
+                targetUserId = foundUserEntry[0];
+                userData = foundUserEntry[1];
+            }
+        }
+    }
+    
+    if (!userData) {
+        log('warn', 'Admin add coins failed - user not found', { adminId, userId });
+        return res.status(404).json({ success: false, error: `Kullanıcı bulunamadı: ${userId}` });
+    }
     
     // Coin ekle
     const oldCoins = userData.coins || 0;
@@ -783,7 +798,8 @@ app.post('/api/admin/add-coins', (req, res) => {
     
     log('info', 'Coins added by admin', { 
         adminId, 
-        userId, 
+        targetUserId: targetUserId,
+        originalIdAttempt: userId,
         amount, 
         reason,
         oldCoins,
@@ -793,8 +809,14 @@ app.post('/api/admin/add-coins', (req, res) => {
     res.json({ 
         success: true, 
         message: `${amount} coin başarıyla eklendi`,
+        username: userData.originalId || targetUserId, // Display a useful identifier
         userCoins: userData.coins
     });
+});
+
+// Broadcast message API
+app.post('/api/admin/broadcast', (req, res) => {
+    // ... existing code ...
 });
 
 // Bot komutları
