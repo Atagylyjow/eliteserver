@@ -1167,6 +1167,67 @@ ${Object.entries(database.users)
     bot.sendMessage(chatId, statsMessage, { parse_mode: 'Markdown' });
 });
 
+// Admin: Edit Script
+app.put('/api/admin/edit-script/:id', adminAuth, async (req, res) => {
+    const { id } = req.params;
+    const { scriptData } = req.body;
+    debug(`Admin edit script API called for id: ${id}`, { scriptData, ip: req.ip });
+
+    try {
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, error: 'Geçersiz Script ID formatı.' });
+        }
+
+        const updateData = {
+            name: scriptData.name,
+            description: scriptData.description,
+            content: scriptData.content,
+            filename: scriptData.filename
+        };
+
+        const result = await db.collection('vpnScripts').updateOne(
+            { _id: new ObjectId(id) },
+            { $set: updateData }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ success: false, error: 'Güncellenecek script bulunamadı.' });
+        }
+
+        log('info', 'Admin edited script', { scriptId: id });
+        res.json({ success: true, message: 'Script başarıyla güncellendi.' });
+
+    } catch (error) {
+        log('error', 'Admin edit script error', { error: error.message, scriptId: id });
+        res.status(500).json({ success: false, error: 'Script güncellenirken bir hata oluştu.' });
+    }
+});
+
+// Admin: Delete Script
+app.delete('/api/admin/delete-script/:id', adminAuth, async (req, res) => {
+    const { id } = req.params;
+    debug(`Admin delete script API called for id: ${id}`, { ip: req.ip });
+
+    try {
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, error: 'Geçersiz Script ID formatı.' });
+        }
+
+        const result = await db.collection('vpnScripts').deleteOne({ _id: new ObjectId(id) });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ success: false, error: 'Silinecek script bulunamadı.' });
+        }
+
+        log('info', 'Admin deleted script', { scriptId: id });
+        res.json({ success: true, message: 'Script başarıyla silindi.' });
+
+    } catch (error) {
+        log('error', 'Admin delete script error', { error: error.message, scriptId: id });
+        res.status(500).json({ success: false, error: 'Script silinirken bir hata oluştu.' });
+    }
+});
+
 // Sunucuyu başlat
 async function startServer() {
     await connectToDb();

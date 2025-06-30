@@ -90,6 +90,8 @@ function createScriptElement(scriptId, script) {
     const div = document.createElement('div');
     div.className = 'script-item';
     
+    const scriptContent = script.content || '[İçerik Yok]'; // İçerik yoksa varsayılan metin
+
     div.innerHTML = `
         <div class="script-header">
             <div class="script-name">${script.name}</div>
@@ -97,7 +99,7 @@ function createScriptElement(scriptId, script) {
                 ${script.enabled ? 'Aktif' : 'Devre Dışı'}
             </div>
         </div>
-        <div class="script-content">${script.content.substring(0, 200)}${script.content.length > 200 ? '...' : ''}</div>
+        <div class="script-content">${scriptContent.substring(0, 200)}${scriptContent.length > 200 ? '...' : ''}</div>
         <div class="script-actions">
             <button class="btn-admin btn-primary btn-small" onclick="editScript('${scriptId}')">
                 <i class="fas fa-edit"></i> Düzenle
@@ -120,26 +122,29 @@ async function handleAddScript(event) {
     
     const formData = new FormData(event.target);
     const scriptData = {
-        id: formData.get('script-id') || document.getElementById('script-id').value,
-        name: formData.get('script-name') || document.getElementById('script-name').value,
-        description: formData.get('script-description') || document.getElementById('script-description').value,
-        filename: formData.get('script-filename') || document.getElementById('script-filename').value
+        name: formData.get('script-name'),
+        description: formData.get('script-description'),
+        content: formData.get('script-content'),
+        filename: formData.get('script-filename')
     };
     
+    const scriptId = formData.get('script-id');
+    const url = scriptId ? `${API_BASE_URL}/admin/edit-script/${scriptId}` : `${API_BASE_URL}/admin/add-script`;
+    const method = scriptId ? 'PUT' : 'POST';
+
     try {
-        const response = await fetch(`${API_BASE_URL}/admin/add-script`, {
-            method: 'POST',
+        const response = await fetch(url, {
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                adminId: ADMIN_ID,
                 scriptData: scriptData
             })
         });
         
         if (response.ok) {
-        const result = await response.json();
+            const result = await response.json();
             showNotification('✅ Script başarıyla eklendi!', 'success');
             event.target.reset();
             loadScripts();
