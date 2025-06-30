@@ -3,532 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VPN Script Hub - Admin Panel</title>
+    <title>Yönetici Paneli</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .admin-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        
-        .admin-header {
-            background: var(--bg-card);
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 2rem;
-            text-align: center;
-            border: 1px solid var(--border-color);
-        }
-        
-        .admin-header h1 {
-            color: var(--accent-primary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .admin-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: var(--bg-card);
-            padding: 1.5rem;
-            border-radius: 10px;
-            text-align: center;
-            border: 1px solid var(--border-color);
-        }
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--accent-primary);
-        }
-        
-        .stat-label {
-            color: var(--text-secondary);
-            margin-top: 0.5rem;
-        }
-        
-        .script-manager {
-            background: var(--bg-card);
-            padding: 2rem;
-            border-radius: 15px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .script-form {
-            display: grid;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        
-        .form-group label {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            font-family: 'Courier New', monospace;
-        }
-        
-        .form-group textarea {
-            min-height: 200px;
-            resize: vertical;
-        }
-        
-        .script-actions {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .btn-admin {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary {
-            background: var(--accent-primary);
-            color: white;
-        }
-        
-        .btn-secondary {
-            background: var(--accent-secondary);
-            color: white;
-        }
-        
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .btn-admin:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hover);
-        }
-        
-        .scripts-list {
-            margin-top: 2rem;
-        }
-        
-        .script-item {
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 10px;
-            margin-bottom: 1rem;
-            border: 1px solid var(--border-color);
-        }
-        
-        .script-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .script-name {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        
-        .script-status {
-            padding: 0.25rem 0.75rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        
-        .status-enabled {
-            background: #28a745;
-            color: white;
-        }
-        
-        .status-disabled {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .script-content {
-            background: var(--bg-card);
-            padding: 1rem;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            max-height: 200px;
-            overflow-y: auto;
-            margin-bottom: 1rem;
-        }
-        
-        .script-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .btn-small {
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-        }
-        
-        .notification.success {
-            background: #28a745;
-        }
-        
-        .notification.error {
-            background: #dc3545;
-        }
-        
-        .notification.info {
-            background: #17a2b8;
-        }
-        
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        
-        /* User Management Styles */
-        .form-row {
-            display: flex;
-            gap: 1rem;
-            align-items: flex-end;
-        }
-        
-        .user-item {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
-        }
-        
-        .user-item:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
-        }
-        
-        .user-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .user-info {
-            flex: 1;
-        }
-        
-        .user-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-        }
-        
-        .user-id {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-        
-        .user-coins {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #f59e0b;
-            background: rgba(245, 158, 11, 0.1);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-        }
-        
-        .user-details {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-        
-        .user-join, .user-downloads {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .no-data {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-secondary);
-            font-style: italic;
-        }
-        
-        .coin-add-section {
-            border: 2px solid var(--border-color);
-        }
-        
-        .coin-add-section h3 {
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-        
-        .users-section h3 {
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="admin-container">
-        <div class="admin-header">
-            <h1><i class="fas fa-shield-alt"></i> VPN Script Hub - Admin Panel</h1>
-            <p>Script yönetimi ve istatistikler</p>
-        </div>
-        
-        <div class="admin-stats">
-            <div class="stat-card">
-                <div class="stat-number" id="total-downloads">0</div>
-                <div class="stat-label">Toplam İndirme</div>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-user-shield"></i> Yönetici Paneli</h1>
+        </header>
+
+        <!-- İstatistikler -->
+        <section id="stats-section" class="card">
+            <h2><i class="fas fa-chart-line"></i> Genel İstatistikler</h2>
+            <div class="stats-grid">
+                <div>
+                    <p>Toplam İndirme</p>
+                    <span id="total-downloads">0</span>
+                </div>
+                <div>
+                    <p>Toplam Kullanıcı</p>
+                    <span id="total-users">0</span>
+                </div>
+                <div>
+                    <p>Toplam Script</p>
+                    <span id="total-scripts">0</span>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number" id="active-users">0</div>
-                <div class="stat-label">Aktif Kullanıcı</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="total-users">0</div>
-                <div class="stat-label">Toplam Kullanıcı</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="script-count">0</div>
-                <div class="stat-label">Script Sayısı</div>
-            </div>
-        </div>
-        
-        <div class="script-manager">
-            <h2><i class="fas fa-plus"></i> Yeni Script Ekle</h2>
-            <form class="script-form" id="add-script-form">
-                <div class="form-group">
-                    <label for="script-id">Script ID:</label>
-                    <input type="text" id="script-id" placeholder="örn: darktunnel" required>
+        </section>
+
+        <!-- Reklam Ayarları -->
+        <section id="ads-section" class="card">
+            <h2><i class="fas fa-ad"></i> Reklam Ayarları</h2>
+            <form id="ad-settings-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="ad-frequency">Sıklık (Frequency)</label>
+                        <input type="number" id="ad-frequency" name="frequency" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ad-capping">Sınır (Capping)</label>
+                        <input type="text" id="ad-capping" name="capping" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ad-interval">Aralık (Interval)</label>
+                        <input type="text" id="ad-interval" name="interval" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ad-timeout">Zaman Aşımı (Timeout)</label>
+                        <input type="text" id="ad-timeout" name="timeout" required>
+                    </div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="script-name">Script Adı:</label>
-                    <input type="text" id="script-name" placeholder="örn: DarkTunnel" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="script-description">Açıklama:</label>
-                    <input type="text" id="script-description" placeholder="Script açıklaması" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="script-filename">Dosya Adı:</label>
-                    <input type="text" id="script-filename" placeholder="örn: darktunnel.conf" required>
-                </div>
-                
-                <div class="script-actions">
-                    <button type="submit" class="btn-admin btn-primary">
-                        <i class="fas fa-plus"></i> Script Ekle
-                    </button>
-                    <button type="button" class="btn-admin btn-secondary" onclick="loadScripts()">
-                        <i class="fas fa-refresh"></i> Yenile
-                    </button>
-                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Reklam Ayarlarını Kaydet</button>
             </form>
-        </div>
-        
-        <!-- Dosya Yükleme Bölümü -->
-        <div class="script-manager" style="margin-top: 2rem;">
-            <h2><i class="fas fa-upload"></i> Dosya Yükle</h2>
-            <form class="script-form" id="upload-form">
+        </section>
+
+
+        <!-- Script Yönetimi -->
+        <section id="scripts-section" class="card">
+            <div class="section-header">
+                <h2><i class="fas fa-file-code"></i> Script Yönetimi</h2>
+                <button class="btn btn-primary" onclick="openScriptModal()">
+                    <i class="fas fa-plus"></i> Yeni Script Ekle
+                </button>
+            </div>
+            <div id="scripts-list">
+                <!-- Scriptler buraya dinamik olarak eklenecek -->
+            </div>
+        </section>
+
+        <!-- Kullanıcı Yönetimi -->
+        <section id="users-section" class="card">
+             <div class="section-header">
+                <h2><i class="fas fa-users"></i> Kullanıcı Yönetimi</h2>
+            </div>
+            <div id="users-list">
+                <!-- Kullanıcılar buraya eklenecek -->
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Script Ekleme/Düzenleme Modalı -->
+    <div id="script-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeScriptModal()">&times;</span>
+            <h3 id="modal-title">Yeni Script Ekle</h3>
+            <form id="script-form">
+                <input type="hidden" id="script-id" name="id">
                 <div class="form-group">
-                    <label for="upload-script-id">Script ID:</label>
-                    <input type="text" id="upload-script-id" placeholder="örn: myvpn" required>
+                    <label for="script-name">Script Adı</label>
+                    <input type="text" id="script-name" name="name" required>
                 </div>
-                
+                 <div class="form-group">
+                    <label for="script-filename">Dosya Adı (örn: v2ray_config.txt)</label>
+                    <input type="text" id="script-filename" name="filename" required>
+                </div>
                 <div class="form-group">
-                    <label for="upload-script-name">Script Adı:</label>
-                    <input type="text" id="upload-script-name" placeholder="örn: My VPN Config" required>
+                    <label for="script-description">Açıklama</label>
+                    <textarea id="script-description" name="description" rows="3"></textarea>
                 </div>
-                
                 <div class="form-group">
-                    <label for="upload-script-description">Açıklama:</label>
-                    <input type="text" id="upload-script-description" placeholder="Script açıklaması" required>
+                    <label for="script-content">Script İçeriği</label>
+                    <textarea id="script-content" name="content" rows="10" required></textarea>
                 </div>
-                
-                <div class="form-group">
-                    <label for="upload-file">Dosya Seç:</label>
-                    <input type="file" id="upload-file" required>
-                    <small style="color: var(--text-secondary); margin-top: 0.25rem;">
-                        Tüm dosya formatları kabul edilir
-                    </small>
-                </div>
-                
-                <div class="script-actions">
-                    <button type="submit" class="btn-admin btn-primary">
-                        <i class="fas fa-upload"></i> Dosya Yükle
-                    </button>
-                    <button type="button" class="btn-admin btn-secondary" onclick="clearUploadForm()">
-                        <i class="fas fa-times"></i> Temizle
-                    </button>
-                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Kaydet</button>
             </form>
-        </div>
-        
-        <!-- Script Düzenleme Bölümü -->
-        <div class="script-manager" style="margin-top: 2rem; display: none;" id="edit-script-section">
-            <h2><i class="fas fa-edit"></i> Script Düzenle</h2>
-            <form class="script-form" id="edit-script-form">
-                <div class="form-group">
-                    <label for="edit-script-id">Script ID:</label>
-                    <input type="text" id="edit-script-id" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-script-name">Script Adı:</label>
-                    <input type="text" id="edit-script-name" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-script-description">Açıklama:</label>
-                    <input type="text" id="edit-script-description" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-script-filename">Dosya Adı:</label>
-                    <input type="text" id="edit-script-filename" required>
-                </div>
-                
-                <!-- Dosya Yükleme Seçeneği -->
-                <div class="form-group">
-                    <label for="edit-upload-file">Yeni Dosya Yükle (Opsiyonel):</label>
-                    <input type="file" id="edit-upload-file">
-                    <small style="color: var(--text-secondary); margin-top: 0.25rem;">
-                        Yeni dosya yüklersen, mevcut içerik değiştirilir
-                    </small>
-                </div>
-                
-                <div class="script-actions">
-                    <button type="submit" class="btn-admin btn-primary">
-                        <i class="fas fa-save"></i> Güncelle
-                    </button>
-                    <button type="button" class="btn-admin btn-secondary" onclick="cancelEdit()">
-                        <i class="fas fa-times"></i> İptal
-                    </button>
-                </div>
-            </form>
-        </div>
-        
-        <!-- Kullanıcı Yönetimi Bölümü -->
-        <div class="script-manager" style="margin-top: 2rem;">
-            <h2><i class="fas fa-users"></i> Kullanıcı Yönetimi</h2>
-            
-            <!-- Kullanıcı İstatistikleri -->
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-card">
-                    <div class="stat-icon">👥</div>
-                    <div class="stat-content">
-                        <div class="stat-number" id="total-users-count">0</div>
-                        <div class="stat-label">Toplam Kullanıcı</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🪙</div>
-                    <div class="stat-content">
-                        <div class="stat-number" id="total-coins">0</div>
-                        <div class="stat-label">Toplam Coin</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📊</div>
-                    <div class="stat-content">
-                        <div class="stat-number" id="avg-coins">0</div>
-                        <div class="stat-label">Ortalama Coin</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Coin Ekleme Formu -->
-            <div class="coin-add-section" style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
-                <h3><i class="fas fa-plus-circle"></i> Kullanıcıya Coin Ekle</h3>
-                <form class="script-form" id="add-coin-form">
-                    <div class="form-row">
-                        <div class="form-group" style="flex: 1;">
-                            <label for="user-id">Kullanıcı ID:</label>
-                            <input type="text" id="user-id" placeholder="örn: 123456789" required>
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label for="coin-amount">Coin Miktarı:</label>
-                            <input type="number" id="coin-amount" placeholder="örn: 10" min="1" required>
-                        </div>
-                        <div class="form-group" style="flex: 1;">
-                            <label for="coin-reason">Sebep (Opsiyonel):</label>
-                            <input type="text" id="coin-reason" placeholder="örn: Promosyon, Ödül">
-                        </div>
-                    </div>
-                    <div class="script-actions">
-                        <button type="submit" class="btn-admin btn-primary">
-                            <i class="fas fa-plus"></i> Coin Ekle
-                        </button>
-                        <button type="button" class="btn-admin btn-secondary" onclick="loadUsers()">
-                            <i class="fas fa-refresh"></i> Yenile
-                        </button>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Kullanıcı Listesi -->
-            <div class="users-section">
-                <h3><i class="fas fa-list"></i> Kullanıcı Listesi</h3>
-                <div class="users-list" id="users-list">
-                    <!-- Kullanıcılar buraya yüklenecek -->
-                </div>
-            </div>
-        </div>
-        
-        <div class="scripts-list" id="scripts-list">
-            <!-- Scriptler buraya yüklenecek -->
         </div>
     </div>
-    
+
     <script src="admin.js"></script>
 </body>
-</html> 
+</html>
