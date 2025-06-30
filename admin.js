@@ -86,23 +86,23 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const createScriptElement = (script) => {
-        const div = document.createElement('div');
-        div.className = 'script-item';
-        div.innerHTML = `
-            <div class="script-header">
+    const div = document.createElement('div');
+    div.className = 'script-item';
+    div.innerHTML = `
+        <div class="script-header">
                 <strong class="script-name">${script.name}</strong>
-                <div class="script-status ${script.enabled ? 'status-enabled' : 'status-disabled'}">
+            <div class="script-status ${script.enabled ? 'status-enabled' : 'status-disabled'}">
                     ${script.enabled ? 'Aktif' : 'Pasif'}
                 </div>
             </div>
             <p class="script-description">${script.description || 'Açıklama yok.'}</p>
             <small class="script-filename">Dosya: ${script.filename}</small>
-            <div class="script-actions">
+        <div class="script-actions">
                 <button class="btn-admin btn-primary" onclick="window.openScriptModal('${script._id}')"><i class="fas fa-edit"></i> Düzenle</button>
                 <button class="btn-admin btn-secondary" onclick="window.toggleScript('${script._id}')"><i class="fas fa-power-off"></i> Durum Değiştir</button>
                 <button class="btn-admin btn-danger" onclick="window.deleteScript('${script._id}')"><i class="fas fa-trash"></i> Sil</button>
-            </div>
-        `;
+        </div>
+    `;
         return div;
     };
     
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="fas fa-coins"></i> Jeton Ekle
             </button>
         `;
-        return div;
+    return div;
     };
 
 
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Ad Ayarlarını Kaydet
     adSettingsForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    e.preventDefault();
         const settings = {
             frequency: parseInt(adSettingsForm.frequency.value, 10),
             capping: adSettingsForm.capping.value,
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (scriptId) {
                 await apiRequest(`/admin/scripts/${scriptId}`, 'PUT', body);
                 alert('Script başarıyla güncellendi!');
-            } else {
+        } else {
                 await apiRequest('/admin/scripts', 'POST', body);
                 alert('Script başarıyla eklendi!');
             }
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await apiRequest(`/admin/scripts/${scriptId}`, 'DELETE');
                 alert('Script başarıyla silindi.');
                 loadAllData();
-            } catch (error) {
+    } catch (error) {
                 // Error is already alerted by apiRequest
             }
         }
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await apiRequest('/admin/add-coins', 'POST', { userId, amount: parseInt(amount, 10) });
                 alert('Jetonlar başarıyla eklendi.');
                 loadAllData();
-            } catch (error) {
+    } catch (error) {
                  // Error is already alerted by apiRequest
             }
         } else if(amount) {

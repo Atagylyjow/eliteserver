@@ -2,116 +2,70 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Telegram Web App - VPN Script Hub - Güvenli VPN scriptlerini edinin">
-    <meta name="keywords" content="Telegram, Web App, VPN, Script, DarkTunnel, HTTP Custom">
-    <meta name="author" content="Nowruz">
-    <title>VPN Script Hub - Telegram Web App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>VPN Script Hub</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Monetag SDK for Rewarded Popup Ads and In-App Interstitial -->
-    <script src='//libtl.com/sdk.js' data-zone='9499819' data-sdk='show_9499819' data-auto='10/0.5/180/10/0' async defer></script>
-    <meta name="monetag" content="d17df08e6ef24a924c1b213c9ff204b9">
-    <script src="https://fpyf8.com/88/tag.min.js" data-zone="154743" async data-cfasync="false"></script>
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
         <header class="header">
-            <div class="header-content">
-                <div class="logo">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>VPN Script Hub</span>
-                </div>
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <span>VPN Script Hub</span>
+            </div>
+            <div class="controls">
                 <div class="coin-system">
-                    <div class="coin-display">
-                        <i class="fas fa-coins"></i>
-                        <span id="user-coins">0</span>
-                    </div>
-                    <button class="coin-add-btn" id="add-coins-btn">
+                    <i class="fas fa-coins"></i>
+                    <span id="user-coins">0</span>
+                    <button class="coin-add-btn" id="add-coins-btn" aria-label="Coin Ekle">
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
-                <div class="theme-toggle">
-                    <i class="fas fa-moon" id="theme-toggle"></i>
-                </div>
+                <button class="theme-toggle-btn" id="theme-toggle-btn" aria-label="Temayı Değiştir">
+                    <i class="fas fa-moon"></i>
+                </button>
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Welcome Section -->
             <section class="welcome-section">
-                <div class="welcome-card">
-                    <div class="welcome-icon">
-                        <i class="fas fa-rocket"></i>
-                    </div>
-                    <h1>Elite Servers Web APP</h1>
-                    <p>Güvenli ve hızlı VPN scriptlerini edinin</p>
-                </div>
+                <h1>Elite Servers Web App</h1>
+                <p>Güvenli ve hızlı VPN scriptlerini edinin.</p>
             </section>
 
-            <!-- VPN Scripts Section -->
             <section class="scripts-section">
-                <h2>VPN Scriptleri</h2>
-                <div class="scripts-grid" id="scripts-grid-container">
-                    <!-- Script kartları buraya dinamik olarak eklenecek -->
-                </div>
-            </section>
-
-            <!-- Instructions Section -->
-            <section class="instructions-section">
-                <h2>Nasıl Kullanılır?</h2>
-                <div class="instructions-grid">
-                    <div class="instruction-step">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <h3>Script Seçin</h3>
-                            <p>İstediğiniz VPN scriptini seçin</p>
-                        </div>
-                    </div>
-                    <div class="instruction-step">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <h3>İndirin</h3>
-                            <p>Script dosyasını cihazınıza indirin</p>
-                        </div>
+                <h2>Mevcut Scriptler</h2>
+                <div class="scripts-grid" id="scripts-grid">
+                    <!-- Script kartları buraya JavaScript ile eklenecek -->
+                    <div class="loading-placeholder">
+                        <p>Scriptler yükleniyor...</p>
+                        <div class="spinner"></div>
                     </div>
                 </div>
             </section>
         </main>
+    </div>
 
-        <!-- Coin Earning Modal -->
-        <div class="modal" id="coin-modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Coin Kazan</h3>
-                    <button class="modal-close" id="coin-modal-close">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="coin-earning-info">
-                        <div class="coin-earning-icon">
-                            <i class="fas fa-coins"></i>
-                        </div>
-                        <h4>Reklam İzleyerek Coin Kazanın</h4>
-                        <p>Kısa bir reklam izleyerek 1 coin kazanabilirsiniz!</p>
-                        <div class="coin-reward">
-                            <span class="reward-amount">+1</span>
-                            <i class="fas fa-coins"></i>
-                        </div>
-                        <button class="btn btn-success" id="watch-ad-btn">
-                            <i class="fas fa-play"></i>
-                            Reklam İzle
-                        </button>
-                    </div>
-                </div>
+    <!-- Coin Kazanma Modalı -->
+    <div class="modal" id="coin-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Coin Kazan</h3>
+                <button class="modal-close" id="coin-modal-close" aria-label="Kapat">&times;</button>
+            </div>
+            <div class="modal-body">
+                <i class="fas fa-coins modal-icon"></i>
+                <h4>Reklam İzleyerek Coin Kazanın!</h4>
+                <p>Kısa bir reklam izleyerek <strong>+1 Coin</strong> kazanabilirsiniz.</p>
+                <button class="btn btn-primary" id="watch-ad-btn">
+                    <i class="fas fa-play"></i> Reklam İzle
+                </button>
             </div>
         </div>
     </div>
-    <div id="frame" style="width: 200px;"><iframe data-aa='2400840' src='//ad.a-ads.com/2400840?size=200x200' style='width:200px; height:200px; border:0px; padding:0; overflow:hidden; background-color: transparent;'></iframe><a style="display: block; text-align: right; font-size: 12px" id="frame-link" href="https://aads.com/campaigns/new/?source_id=2400840&source_type=ad_unit&partner=2400840">Advertise here</a></div>
+    
     <script src="script.js"></script>
 </body>
-</html> 
+</html>

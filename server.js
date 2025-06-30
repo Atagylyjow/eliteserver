@@ -27,8 +27,8 @@ let db;
 const log = (level, message, data = null) => {
     const timestamp = new Date().toISOString();
     const logString = `[${timestamp}] ${level.toUpperCase()}: ${message}${data ? ` | Data: ${JSON.stringify(data)}` : ''}`;
-    console.log(logString);
-    fs.appendFileSync(LOG_FILE, logString + '\n');
+        console.log(logString);
+        fs.appendFileSync(LOG_FILE, logString + '\n');
 };
 
 // --- INITIALIZATION ---
@@ -130,6 +130,11 @@ app.post('/api/download/:scriptId', async (req, res) => {
     try {
         if (!ObjectId.isValid(scriptId)) return res.status(400).json({ success: false, message: 'Geçersiz ID' });
 
+        const script = await db.collection('vpnScripts').findOne({ _id: new ObjectId(scriptId) });
+        if (!script) {
+            return res.status(404).json({ success: false, message: 'Script bulunamadı' });
+        }
+
         await db.collection('vpnScripts').updateOne({ _id: new ObjectId(scriptId) }, { $inc: { downloads: 1 } });
 
         if (userId) {
@@ -143,10 +148,90 @@ app.post('/api/download/:scriptId', async (req, res) => {
                 { upsert: true }
             );
         }
-        res.json({ success: true });
+        
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Content-Disposition', `attachment; filename="${script.filename}"`);
+        res.send(script.content);
+
     } catch (error) {
         log('error', 'POST /api/download/:scriptId', { error: error.message });
-        res.status(500).json({ success: false, message: 'İndirme izlenemedi.' });
+        res.status(500).json({ success: false, message: 'İndirme sırasında hata oluştu.' });
+    }
+});
+
+
+// --- USER COIN MANAGEMENT API ---
+
+app.get('/api/user/data/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await db.collection('users').findOne({ _id: userId });
+        if (user) {
+            res.json({ success: true, coins: user.coins || 0, purchasedScripts: user.purchasedScripts || [] });
+        } else {
+            const newUser = {
+                _id: userId,
+                coins: 0,
+                purchasedScripts: [],
+                firstSeen: new Date(),
+                lastSeen: new Date(),
+                downloadCount: 0
+            };
+            await db.collection('users').insertOne(newUser);
+            res.json({ success: true, coins: 0, purchasedScripts: [] });
+        }
+    } catch (error) {
+        log('error', 'GET /api/user/data', { error: error.message });
+        res.status(500).json({ success: false, message: 'Kullanıcı verileri alınamadı.' });
+    }
+});
+
+app.post('/api/user/add-coin', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) return res.status(400).json({ success: false, message: 'Kullanıcı ID gerekli.' });
+
+        const result = await db.collection('users').findOneAndUpdate(
+            { _id: userId },
+            { $inc: { coins: 1 }, $set: { lastSeen: new Date() } },
+            { returnDocument: 'after', upsert: true }
+        );
+        
+        res.json({ success: true, newBalance: result.value.coins });
+
+    } catch (error) {
+        log('error', 'POST /api/user/add-coin', { error: error.message });
+        res.status(500).json({ success: false, message: 'Coin eklenemedi.' });
+    }
+});
+
+app.post('/api/user/use-coins', async (req, res) => {
+    try {
+        const { userId, scriptId, price } = req.body;
+        if (!userId || !scriptId || price === undefined) {
+            return res.status(400).json({ success: false, message: 'Kullanıcı ID, Script ID ve Fiyat gerekli.' });
+        }
+
+        const user = await db.collection('users').findOne({ _id: userId });
+        
+        if (!user || (user.coins || 0) < price) {
+            return res.status(402).json({ success: false, message: 'Yetersiz bakiye.' });
+        }
+
+        const result = await db.collection('users').updateOne(
+            { _id: userId },
+            { 
+                $inc: { coins: -price },
+                $addToSet: { purchasedScripts: scriptId }
+            }
+        );
+        
+        const updatedUser = await db.collection('users').findOne({ _id: userId });
+        res.json({ success: true, message: 'Satın alma başarılı!', newBalance: updatedUser.coins, purchasedScripts: updatedUser.purchasedScripts });
+
+    } catch (error) {
+        log('error', 'POST /api/user/use-coins', { error: error.message });
+        res.status(500).json({ success: false, message: 'İşlem sırasında hata oluştu.' });
     }
 });
 
@@ -159,9 +244,9 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
         const scripts = await db.collection('vpnScripts').find({}).toArray();
         const settings = await db.collection('settings').findOne({ type: 'ad_settings' });
         const totalDownloads = scripts.reduce((sum, s) => sum + (s.downloads || 0), 0);
-        
-        res.json({
-            success: true,
+    
+    res.json({
+        success: true,
             stats: {
                 totalUsers: users.length,
                 totalDownloads,
@@ -187,10 +272,10 @@ app.post('/api/admin/scripts', adminAuth, upload.single('contentFile'), async (r
         }
 
         const newScript = {
-            name,
+        name,
             type,
-            content,
-            filename,
+        content,
+        filename,
             enabled: true,
             downloads: 0,
             createdAt: new Date(),
@@ -210,9 +295,9 @@ app.put('/api/admin/scripts/:id', adminAuth, upload.single('contentFile'), async
         
         const { name, type, filename } = req.body;
         let content = req.body.content;
-
+        
         const updateData = { name, type, filename };
-
+        
         if (req.file) {
             content = fs.readFileSync(req.file.path, 'utf-8');
             fs.unlinkSync(req.file.path);
