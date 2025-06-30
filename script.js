@@ -276,78 +276,55 @@ async function watchAd() {
 
     watchButton.disabled = true;
     if(spinner) spinner.style.display = 'inline-block';
-    if(buttonText) buttonText.textContent = 'Yükleniyor...';
-
-    console.log('🎬 Reklam izleme başlatıldı...');
+    if(buttonText) buttonText.textContent = 'Yönlendiriliyor...';
 
     try {
-        // Show the rewarded video ad and wait for completion
-        await showRewardedVideoAd();
+        // Show the old rewarded popup ad
+        await showRewardedPopupAd();
         
-        console.log('✅ Reklam başarıyla tamamlandı. Coin ekleniyor...');
-        
-        // Add 1 coin to the user
+        // In the old system, we add coins immediately after the popup is triggered
+        console.log('✅ Popup reklam tetiklendi. Coin ekleniyor...');
         await addCoins(1);
         
         // Close the modal
-        const adModalEl = document.getElementById('adModal');
-        if (adModalEl) {
-            const adModal = bootstrap.Modal.getInstance(adModalEl);
-            if (adModal) adModal.hide();
+        if (coinModal) {
+            coinModal.style.display = 'none';
         }
         
     } catch (error) {
-        console.error('❌ Reklam izleme hatası veya reklamdan ödül kazanılamadı:', error);
-        showNotification('Reklam gösterilemedi veya ödül kazanılamadı. Lütfen tekrar deneyin.', 'error');
+        console.error('❌ Reklam gösterme hatası:', error);
+        showNotification('Reklam gösterilemedi. Lütfen tekrar deneyin.', 'error');
     } finally {
         // Re-enable the button and hide spinner
         watchButton.disabled = false;
         if(spinner) spinner.style.display = 'none';
         if(buttonText) buttonText.textContent = 'Reklam İzle';
-        console.log(' Reklam izleme süreci bitti.');
     }
 }
 
-// Show Monetag Rewarded Video Ad
-function showRewardedVideoAd() {
+// Reverted to the old Rewarded Popup Ad system
+function showRewardedPopupAd() {
     return new Promise((resolve, reject) => {
         const userId = getUserId();
-        console.log(`🎬 Monetag Rewarded Video reklamı hazırlanıyor... Kullanıcı: ${userId}`);
+        console.log(`🎬 Eski Sistem: Monetag Popup reklamı gösteriliyor... Kullanıcı: ${userId}`);
 
         if (typeof window.show_9499819 !== 'function') {
-            const errorMsg = '⚠️ Monetag SDK yüklenmedi, reklam gösterilemiyor.';
-            console.error(errorMsg);
-            return reject(new Error(errorMsg));
+            return reject(new Error('Monetag SDK yüklenemedi.'));
         }
 
-        // Call the SDK to show a Rewarded Interstitial
-        // catchIfNoFeed: true -> Rejects the promise if no ad is available
-        window.show_9499819({
-            type: 'end',
-            ymid: userId,
-            catchIfNoFeed: true // Explicitly handle no-ad-available case
+        // The promise for 'pop' resolves almost immediately.
+        // There is no reliable way to know if the ad was truly watched.
+        window.show_9499819({ 
+            type: 'pop',
+            ymid: userId 
         })
-        .then(result => {
-            console.log('🎉 Reklam sonucu alındı:', result);
-            // The promise resolves when the ad is closed. Check if it was valued.
-            if (result && result.reward_event_type === 'valued') {
-                console.log('✅ Ödül kazanıldı!');
-                resolve();
-            } else {
-                console.log('🚫 Reklam izlendi ancak ödül kazanılamadı (örn. atlandı).');
-                reject(new Error('Reklamdan ödül kazanılamadı.'));
-            }
+        .then(() => {
+            console.log('✅ Popup reklamı başarıyla tetiklendi.');
+            resolve(); // Assume success once triggered
         })
         .catch(error => {
-            // Check for specific "no feed" error message if available, otherwise use a generic one.
-            const noAdAvailable = error && error.message && error.message.toLowerCase().includes('ad feed is empty');
-            if (noAdAvailable) {
-                console.warn('🤔 Gösterilecek reklam bulunamadı.');
-                reject(new Error('Şu anda mevcut bir reklam yok. Lütfen daha sonra tekrar deneyin.'));
-            } else {
-                console.error('❌ Reklam gösterilirken bir hata oluştu:', error);
-                reject(error);
-            }
+            console.error('❌ Popup reklamı gösterilirken hata oluştu:', error);
+            reject(error);
         });
     });
 }
@@ -459,8 +436,8 @@ async function downloadScript(scriptName) {
         
         // Clean up
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
+    URL.revokeObjectURL(url);
+    
         showNotification(`✅ '${scriptName}' başarıyla satın alındı ve indirildi! (${price} coin düşüldü)`, 'success');
 
     } catch (error) {
@@ -653,13 +630,22 @@ function setupEventListeners() {
     // Coin modal event listeners
     if (addCoinsBtn) {
         addCoinsBtn.addEventListener('click', () => {
-            const adModal = bootstrap.Modal.getInstance(document.getElementById('adModal'));
-            if (adModal) {
-                adModal.show();
-                console.log('✅ Coin modal açıldı');
+            if (coinModal) {
+                coinModal.style.display = 'block';
+                console.log('✅ Coin modal açıldı (eski sistem)');
             }
         });
         console.log('✅ Add coins button listener eklendi');
+    }
+
+    if (coinModalClose) {
+        coinModalClose.addEventListener('click', () => {
+            if (coinModal) {
+                coinModal.style.display = 'none';
+                console.log('✅ Coin modal kapatıldı (eski sistem)');
+            }
+        });
+        console.log('✅ Coin modal close listener eklendi');
     }
 
     // Watch ad button
