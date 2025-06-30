@@ -88,9 +88,13 @@ app.use(cors({
     origin: [
         'http://localhost:3000',
         'http://127.0.0.1:3000',
+        'http://192.168.1.100:3000',
         'https://atagylyjow.github.io',
         'https://*.github.io',
-        'https://*.githubusercontent.com'
+        'https://*.githubusercontent.com',
+        /^https?:\/\/192\.168\.\d+\.\d+:\d+$/, // Allow all local network IPs
+        /^https?:\/\/10\.\d+\.\d+\.\d+:\d+$/,  // Allow 10.x.x.x IPs
+        /^https?:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+:\d+$/ // Allow 172.16-31.x.x IPs
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -445,6 +449,7 @@ app.get('/api/download/:scriptId', (req, res) => {
     // Script içeriğini döndür
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Content-Disposition', `attachment; filename="${script.filename}"`);
+    res.setHeader('X-Filename', script.filename);
     res.send(script.content);
 });
 

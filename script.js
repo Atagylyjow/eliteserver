@@ -1,5 +1,21 @@
 // Backend API URL'si - Dinamik olarak belirlenir
-const API_BASE_URL = 'http://localhost:3000/api'; // Geçici olarak localhost'a yönlendir
+let API_BASE_URL;
+
+// Detect environment and set appropriate API URL
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    // Local development
+    API_BASE_URL = 'http://localhost:3000/api';
+} else if (window.location.hostname.includes('github.io')) {
+    // GitHub Pages - use your computer's IP address
+    API_BASE_URL = 'http://192.168.1.100:3000/api'; // Your actual IP address
+    console.warn('⚠️ GitHub Pages detected - using local IP for API calls');
+} else {
+    // Other domains - assume same origin
+    API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:3000/api`;
+}
+
+console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('📍 Current hostname:', window.location.hostname);
 
 // Cache busting - Force reload updated script
 // Version: 1.0.1 - Fixed themeToggle errors
@@ -412,9 +428,32 @@ async function downloadScript(scriptName) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        // Get the script content and filename from response headers
+        // Get the script content
         const content = await response.text();
-        const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || `${scriptName}.conf`;
+        
+        // Get filename from server response - try multiple methods
+        let filename = `${scriptName}.conf`; // fallback
+        
+        // Method 1: Try to get from Content-Disposition header
+        const contentDisposition = response.headers.get('content-disposition');
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (filenameMatch && filenameMatch[1]) {
+                filename = filenameMatch[1].replace(/['"]/g, '');
+                console.log('✅ Filename from Content-Disposition:', filename);
+            }
+        }
+        
+        // Method 2: Try to get from response headers
+        if (!filename || filename === `${scriptName}.conf`) {
+            const serverFilename = response.headers.get('x-filename');
+            if (serverFilename) {
+                filename = serverFilename;
+                console.log('✅ Filename from X-Filename header:', filename);
+            }
+        }
+        
+        console.log('📁 Final filename:', filename);
         
         // Create a Blob from the script content
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -431,8 +470,8 @@ async function downloadScript(scriptName) {
         
         // Clean up
         document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
+        URL.revokeObjectURL(url);
+        
         showNotification(`✅ '${scriptName}' başarıyla satın alındı ve indirildi! (${price} coin düşüldü)`, 'success');
 
     } catch (error) {

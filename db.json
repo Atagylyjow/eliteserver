@@ -1,12 +1,12 @@
 {
   "stats": {
-    "totalDownloads": 19,
+    "totalDownloads": 25,
     "activeUsers": 2,
-    "darktunnelDownloads": 4,
-    "httpcustomDownloads": 10,
-    "npvtunnelDownloads": 5,
+    "darktunnelDownloads": 6,
+    "httpcustomDownloads": 12,
+    "npvtunnelDownloads": 7,
     "shadowsocksDownloads": 0,
-    "lastUpdated": "2025-06-29T23:26:39.393Z",
+    "lastUpdated": "2025-06-30T00:10:14.631Z",
     "totalUsers": 2
   },
   "users": {
@@ -16,10 +16,10 @@
       "coins": 101
     },
     "7749779502": {
-      "downloads": 12,
+      "downloads": 18,
       "firstSeen": "2025-06-29T21:50:18.970Z",
-      "coins": 100,
-      "lastDownload": "2025-06-29T23:26:39.393Z"
+      "coins": 70,
+      "lastDownload": "2025-06-30T00:10:14.631Z"
     }
   },
   "admins": [
