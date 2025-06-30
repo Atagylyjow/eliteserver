@@ -412,30 +412,30 @@ app.post('/api/user/:userId/use-coins', (req, res) => {
 });
 
 // Yönetici API'leri
-app.post('/api/admin/add-script', (req, res) => {
-    const { adminId, scriptData } = req.body;
+app.post('/api/admin/add-script', adminAuth, async (req, res) => {
+    const { scriptData } = req.body;
     
-    debug('Admin add script API called', { adminId, scriptData, ip: req.ip });
-    
-    if (!isAdmin(adminId)) {
-        log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
-        return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
+    debug('Admin add script API called', { scriptData, ip: req.ip });
+
+    try {
+        const newScript = {
+            name: scriptData.name,
+            description: scriptData.description,
+            content: scriptData.content,
+            filename: scriptData.filename,
+            enabled: true,
+            createdAt: new Date()
+        };
+
+        const result = await db.collection('vpnScripts').insertOne(newScript);
+        
+        log('info', 'Script added by admin', { adminId: req.body.adminId, scriptId: result.insertedId });
+        res.json({ success: true, message: 'Script başarıyla eklendi', scriptId: result.insertedId });
+
+    } catch (error) {
+        log('error', 'Admin add script API error', { error: error.message });
+        res.status(500).json({ success: false, error: 'Sunucu hatası: Script eklenemedi' });
     }
-    
-    const { id, name, description, content, filename } = scriptData;
-    database.vpnScripts[id] = {
-        name,
-        description,
-        content,
-        filename,
-        enabled: true
-    };
-    
-    writeDatabase(); // Değişiklikleri kaydet
-    
-    log('info', 'Script added by admin', { adminId, scriptId: id, scriptName: name });
-    
-    res.json({ success: true, message: 'Script başarıyla eklendi' });
 });
 
 // File upload API endpoint
