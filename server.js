@@ -814,11 +814,6 @@ app.post('/api/admin/add-coins', (req, res) => {
     });
 });
 
-// Broadcast message API
-app.post('/api/admin/broadcast', (req, res) => {
-    // ... existing code ...
-});
-
 // Bot komutları
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
