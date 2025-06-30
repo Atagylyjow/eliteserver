@@ -1,4 +1,6 @@
+require('dotenv').config();
 const express = require('express');
+const { MongoClient, ObjectId } = require('mongodb');
 const TelegramBot = require('node-telegram-bot-api');
 const cors = require('cors');
 const path = require('path');
@@ -9,8 +11,60 @@ const multer = require('multer');
 const DEBUG_MODE = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development';
 const LOG_FILE = 'app.log';
 
-// --- Kalıcı Veritabanı Sistemi ---
-const DB_FILE = path.join(__dirname, 'db.json');
+// --- MongoDB Bağlantısı ---
+const dbUrl = process.env.DATABASE_URL;
+let db;
+
+async function connectToDb() {
+    try {
+        const client = new MongoClient(dbUrl);
+        await client.connect();
+        db = client.db();
+        log('info', 'MongoDB veritabanına başarıyla bağlanıldı.');
+
+        // Veritabanı koleksiyonlarının var olduğundan emin ol
+        const collections = await db.listCollections().toArray();
+        const collectionNames = collections.map(c => c.name);
+
+        if (!collectionNames.includes('users')) {
+            await db.createCollection('users');
+            log('info', '`users` koleksiyonu oluşturuldu.');
+        }
+        if (!collectionNames.includes('vpnScripts')) {
+            await db.createCollection('vpnScripts');
+            log('info', '`vpnScripts` koleksiyonu oluşturuldu.');
+        }
+        if (!collectionNames.includes('stats')) {
+            await db.createCollection('stats');
+            // Başlangıç istatistiklerini ekle
+            const stats = await db.collection('stats').findOne();
+            if (!stats) {
+                await db.collection('stats').insertOne({
+                    totalDownloads: 0,
+                    activeUsers: 0,
+                    darktunnelDownloads: 0,
+                    httpcustomDownloads: 0,
+                    npvtunnelDownloads: 0,
+                    shadowsocksDownloads: 0,
+                    lastUpdated: new Date()
+                });
+                log('info', 'Başlangıç istatistikleri oluşturuldu.');
+            }
+        }
+        if (!collectionNames.includes('admins')) {
+            await db.createCollection('admins');
+            const admin = await db.collection('admins').findOne({ chatId: 7749779502 });
+            if (!admin) {
+                await db.collection('admins').insertOne({ chatId: 7749779502, addedAt: new Date() });
+                log('info', 'Varsayılan yönetici eklendi.');
+            }
+        }
+    } catch (error) {
+        log('error', 'MongoDB bağlantı hatası', { error: error.message });
+        process.exit(1); // Hata durumunda uygulamayı sonlandır
+    }
+}
+// ----------------------------
 
 // Multer configuration for file uploads
 const upload = multer({
@@ -108,196 +162,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// --- Kalıcı Veritabanı Sistemi ---
-let database = {
-    stats: {
-        totalDownloads: 0,
-        activeUsers: 0,
-        darktunnelDownloads: 0,
-        httpcustomDownloads: 0,
-        npvtunnelDownloads: 0,
-        shadowsocksDownloads: 0,
-        lastUpdated: new Date()
-    },
-    users: {},
-    admins: [7749779502],
-    vpnScripts: {
-        darktunnel: {
-            name: 'DarkTunnel',
-            description: 'Gelişmiş tünel teknolojisi ile güvenli bağlantı',
-            content: `# DarkTunnel VPN Configuration
-# Server: premium.darktunnel.com
-# Port: 443
-# Protocol: TLS
-
-[General]
-loglevel = notify
-interface = 127.0.0.1
-port = 1080
-socks-interface = 127.0.0.1
-socks-port = 1081
-http-interface = 127.0.0.1
-http-port = 1082
-
-[Proxy]
-Type = Shadowsocks
-Server = premium.darktunnel.com
-Port = 443
-Method = chacha20-ietf-poly1305
-Password = your_password_here
-
-[Proxy Group]
-Proxy = select, auto, fallback
-auto = url-test, server-tcp, url = http://www.gstatic.com/generate_204
-fallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204
-
-[Rule]
-DOMAIN-SUFFIX,google.com,Proxy
-DOMAIN-SUFFIX,facebook.com,Proxy
-DOMAIN-SUFFIX,twitter.com,Proxy
-DOMAIN-SUFFIX,instagram.com,Proxy
-DOMAIN-SUFFIX,youtube.com,Proxy
-DOMAIN-SUFFIX,netflix.com,Proxy
-GEOIP,CN,DIRECT
-FINAL,DIRECT`,
-            filename: 'darktunnel.conf',
-            enabled: true
-        },
-        httpcustom: {
-            name: 'HTTP Custom',
-            description: 'HTTP/HTTPS protokolü ile özelleştirilebilir bağlantı',
-            content: `# HTTP Custom Configuration
-# Server: http-custom.example.com
-# Port: 80
-# Protocol: HTTP
-
-[General]
-loglevel = notify
-interface = 127.0.0.1
-port = 1080
-socks-interface = 127.0.0.1
-socks-port = 1081
-http-interface = 127.0.0.1
-http-port = 1082
-
-[Proxy]
-Type = HTTP
-Server = http-custom.example.com
-Port = 80
-Username = your_username
-Password = your_password
-
-[Proxy Group]
-Proxy = select, auto, fallback
-auto = url-test, server-tcp, url = http://www.gstatic.com/generate_204
-fallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204
-
-[Rule]
-DOMAIN-SUFFIX,google.com,Proxy
-DOMAIN-SUFFIX,facebook.com,Proxy
-DOMAIN-SUFFIX,twitter.com,Proxy
-DOMAIN-SUFFIX,instagram.com,Proxy
-DOMAIN-SUFFIX,youtube.com,Proxy
-DOMAIN-SUFFIX,netflix.com,Proxy
-GEOIP,CN,DIRECT
-FINAL,DIRECT`,
-            filename: 'httpcustom.conf',
-            enabled: true
-        },
-        npvtunnel: {
-            name: 'NPV Tunnel',
-            description: 'Gelişmiş tünel teknolojisi ile hızlı ve güvenli bağlantı',
-            content: `# NPV Tunnel Configuration
-# Server: npv-tunnel.example.com
-# Port: 443
-# Protocol: TLS
-
-[General]
-loglevel = notify
-interface = 127.0.0.1
-port = 1080
-socks-interface = 127.0.0.1
-socks-port = 1081
-http-interface = 127.0.0.1
-http-port = 1082
-
-[Proxy]
-Type = Shadowsocks
-Server = npv-tunnel.example.com
-Port = 443
-Method = aes-256-gcm
-Password = your_password_here
-
-[Proxy Group]
-Proxy = select, auto, fallback
-auto = url-test, server-tcp, url = http://www.gstatic.com/generate_204
-fallback = fallback, server-tcp, url = http://www.gstatic.com/generate_204
-
-[Rule]
-DOMAIN-SUFFIX,google.com,Proxy
-DOMAIN-SUFFIX,facebook.com,Proxy
-DOMAIN-SUFFIX,twitter.com,Proxy
-DOMAIN-SUFFIX,instagram.com,Proxy
-DOMAIN-SUFFIX,youtube.com,Proxy
-DOMAIN-SUFFIX,netflix.com,Proxy
-GEOIP,CN,DIRECT
-FINAL,DIRECT`,
-            filename: 'npvtunnel.conf',
-            enabled: true
-        },
-        shadowsocks: {
-            name: 'Shadowsocks',
-            description: 'Güvenli proxy protokolü ile şifreli bağlantı',
-            content: `# Shadowsocks Configuration
-# Server: ss-server.example.com
-# Port: 8388
-# Method: aes-256-gcm
-# Password: your_password_here
-
-{
-  "server": "ss-server.example.com",
-  "server_port": 8388,
-  "password": "your_password_here",
-  "method": "aes-256-gcm",
-  "timeout": 300,
-  "fast_open": false,
-  "reuse_port": true,
-  "local_address": "127.0.0.1",
-  "local_port": 1080,
-  "mode": "tcp_and_udp"
-}`,
-            filename: 'shadowsocks.json',
-            enabled: true,
-            showConfig: true
-        }
-    }
-};
-
-function readDatabase() {
-    try {
-        if (fs.existsSync(DB_FILE)) {
-            const data = fs.readFileSync(DB_FILE, 'utf-8');
-            database = JSON.parse(data);
-            log('info', 'Veritabanı dosyadan başarıyla okundu.');
-        } else {
-            fs.writeFileSync(DB_FILE, JSON.stringify(database, null, 2));
-            log('info', 'Yeni veritabanı dosyası oluşturuldu.');
-        }
-    } catch (error) {
-        log('error', 'Veritabanı okunurken hata oluştu.', { error: error.message });
-    }
-}
-
-function writeDatabase() {
-    try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(database, null, 2));
-        debug('Veritabanı dosyaya başarıyla yazıldı.');
-    } catch (error) {
-        log('error', 'Veritabanı yazılırken hata oluştu.', { error: error.message });
-    }
-}
-// --- Veritabanı Sistemi Sonu ---
-
 // Kullanıcı ID'lerini normalize et
 function normalizeUserId(userId) {
     if (!userId) {
@@ -347,106 +211,114 @@ function getUserData(userId) {
 }
 
 // Yönetici kontrolü
-function isAdmin(chatId) {
-    return database.admins.includes(parseInt(chatId, 10));
+async function isAdmin(chatId) {
+    const admin = await db.collection('admins').findOne({ chatId: parseInt(chatId, 10) });
+    return !!admin;
 }
 
 // Admin kimlik doğrulama middleware'i
-const adminAuth = (req, res, next) => {
+const adminAuth = async (req, res, next) => {
     const adminId = req.query.adminId || req.body.adminId;
     if (!adminId) {
         return res.status(401).json({ success: false, error: 'Admin ID gerekli' });
     }
-    if (!isAdmin(adminId)) {
+    if (!(await isAdmin(adminId))) {
         return res.status(403).json({ success: false, error: 'Yetkisiz erişim' });
     }
     next();
 };
 
 // İstatistikleri güncelle
-function updateStats(scriptType) {
-    database.stats.totalDownloads++;
-    if (scriptType === 'darktunnel') {
-        database.stats.darktunnelDownloads++;
-    } else if (scriptType === 'httpcustom') {
-        database.stats.httpcustomDownloads++;
-    } else if (scriptType === 'npvtunnel') {
-        database.stats.npvtunnelDownloads++;
-    } else if (scriptType === 'shadowsocks') {
-        database.stats.shadowsocksDownloads++;
+async function updateStats(scriptType) {
+    const update = {
+        $inc: { totalDownloads: 1 },
+        $set: { lastUpdated: new Date() }
+    };
+
+    if (scriptType) {
+        update.$inc[`${scriptType}Downloads`] = 1;
     }
-    database.stats.lastUpdated = new Date();
+
+    await db.collection('stats').updateOne({}, update, { upsert: true });
 }
 
 // API Routes
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', async (req, res) => {
     debug('Stats API called', { ip: req.ip });
-    
-    // Aktif kullanıcı sayısını güncelle
-    database.stats.activeUsers = Object.keys(database.users).length;
-    
-    // Toplam kullanıcı sayısı - unique user ID sayısı
-    database.stats.totalUsers = Object.keys(database.users).length;
-    
-    log('info', 'Stats requested', { 
-        totalDownloads: database.stats.totalDownloads,
-        activeUsers: database.stats.activeUsers,
-        totalUsers: database.stats.totalUsers
-    });
-    
-    res.json(database.stats);
-});
+    try {
+        const totalUsers = await db.collection('users').countDocuments();
+        const stats = await db.collection('stats').findOne();
+        
+        const finalStats = {
+            ...stats,
+            activeUsers: totalUsers, // Basitlik için toplam kullanıcıyı aktif sayıyoruz
+            totalUsers: totalUsers,
+        };
 
-app.get('/api/scripts', (req, res) => {
-    debug('Scripts API called', { ip: req.ip });
-    
-    const scripts = Object.keys(database.vpnScripts);
-    log('info', 'Scripts requested', { 
-        scriptCount: scripts.length,
-        scripts: scripts
-    });
-    
-    res.json(database.vpnScripts);
-});
-
-app.get('/api/download/:scriptId', (req, res) => {
-    const { scriptId } = req.params;
-    const userId = getUserId(req);
-    
-    debug('Download API called', { scriptId, userId, ip: req.ip });
-    
-    if (!database.vpnScripts[scriptId] || !database.vpnScripts[scriptId].enabled) {
-        log('warn', 'Script download failed - not found or disabled', { scriptId, userId });
-        return res.status(404).json({ success: false, error: 'Script bulunamadı veya devre dışı' });
+        log('info', 'Stats requested', finalStats);
+        res.json(finalStats);
+    } catch (error) {
+         log('error', 'Stats API error', { error: error.message });
+         res.status(500).json({ success: false, error: 'İstatistikler alınamadı.' });
     }
+});
+
+app.get('/api/scripts', async (req, res) => {
+    debug('Scripts API called', { ip: req.ip });
+    try {
+        const scriptsArray = await db.collection('vpnScripts').find({}).toArray();
+        const scripts = scriptsArray.reduce((acc, script) => {
+            acc[script._id.toString()] = script; // ID'yi string'e çevir
+            return acc;
+        }, {});
+
+        log('info', 'Scripts requested', { scriptCount: scriptsArray.length });
+        res.json(scripts);
+    } catch (error) {
+        log('error', 'Scripts API error', { error: error.message });
+        res.status(500).json({ success: false, error: 'Scriptler alınamadı.' });
+    }
+});
+
+app.get('/api/download/:scriptId', async (req, res) => {
+    const { scriptId } = req.params;
     
-    const script = database.vpnScripts[scriptId];
-    const userData = getUserData(userId);
-    
-    // Kullanıcı istatistiklerini güncelle
-    userData.downloads++;
-    userData.lastDownload = new Date().toISOString();
-    
-    // Genel istatistikleri güncelle
-    updateStats(scriptId);
-    
-    // Veritabanını kaydet
-    writeDatabase();
-    
-    log('info', 'Script downloaded', { scriptId, userId, scriptName: script.name });
-    
-    // Script içeriğini döndür
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', `attachment; filename="${script.filename}"`);
-    res.setHeader('X-Filename', script.filename);
-    res.send(script.content);
+    try {
+        if (!ObjectId.isValid(scriptId)) {
+            return res.status(400).json({ success: false, error: 'Geçersiz Script ID' });
+        }
+
+        const script = await db.collection('vpnScripts').findOne({ _id: new ObjectId(scriptId) });
+
+        if (!script || !script.enabled) {
+            log('warn', 'Script download failed - not found or disabled', { scriptId });
+            return res.status(404).json({ success: false, error: 'Script bulunamadı veya devre dışı' });
+        }
+        
+        await updateStats(script.name.toLowerCase().replace(' ', ''));
+        
+        log('info', 'Script downloaded', { scriptId, scriptName: script.name });
+        
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Content-Disposition', `attachment; filename="${script.filename}"`);
+        res.setHeader('X-Filename', script.filename);
+        res.send(script.content);
+    } catch (error) {
+        log('error', 'Download API error', { error: error.message, scriptId });
+        res.status(500).json({ success: false, error: 'İndirme sırasında hata oluştu.' });
+    }
 });
 
 // Admin Routes
-app.get('/api/admin/users', adminAuth, (req, res) => {
+app.get('/api/admin/users', adminAuth, async (req, res) => {
     try {
         log('info', 'Admin requested user list', { adminId: req.query.adminId });
-        res.json({ success: true, users: database.users });
+        const usersArray = await db.collection('users').find({}).toArray();
+        const users = usersArray.reduce((acc, user) => {
+            acc[user._id.toString()] = user;
+            return acc;
+        }, {});
+        res.json({ success: true, users });
     } catch (error) {
         log('error', 'Failed to get users for admin', { error: error.message });
         res.status(500).json({ success: false, error: 'Kullanıcılar alınamadı' });
@@ -1292,21 +1164,25 @@ ${Object.entries(database.users)
 });
 
 // Sunucuyu başlat
-app.listen(PORT, () => {
-    readDatabase(); // Sunucu başlarken veritabanını oku
-    log('info', `🚀 VPN Script Hub Server başlatıldı!`, {
-        port: PORT,
-        botToken: `***${token.slice(-6)}`,
-        webAppUrl: `https://atagylyjow.github.io/TG-Web-App/`,
-        debugMode: DEBUG_MODE,
-        logFile: LOG_FILE
+async function startServer() {
+    await connectToDb();
+    app.listen(PORT, () => {
+        log('info', `🚀 VPN Script Hub Server başlatıldı!`, {
+            port: PORT,
+            botToken: `***${token.slice(-6)}`,
+            webAppUrl: `https://atagylyjow.github.io/TG-Web-App/`,
+            debugMode: DEBUG_MODE,
+            logFile: LOG_FILE
+        });
+        console.log(`📡 Port: ${PORT}`);
+        console.log(`🤖 Bot Token: ${token}`);
+        console.log(`🌐 Web App URL: https://atagylyjow.github.io/TG-Web-App/`);
+        console.log(`🔧 Debug Mode: ${DEBUG_MODE}`);
+        console.log(`📝 Log File: ${LOG_FILE}`);
     });
-    console.log(`📡 Port: ${PORT}`);
-    console.log(`🤖 Bot Token: ${token}`);
-    console.log(`🌐 Web App URL: https://atagylyjow.github.io/TG-Web-App/`);
-    console.log(`🔧 Debug Mode: ${DEBUG_MODE}`);
-    console.log(`📝 Log File: ${LOG_FILE}`);
-});
+}
+
+startServer();
 
 // Error handling middleware'i ekle
 app.use(errorHandler);
