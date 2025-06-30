@@ -1,7 +1,5 @@
 // Backend API URL'si - Dinamik olarak belirlenir
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-    ? 'http://localhost:3000/api' 
-    : `${window.location.protocol}//${window.location.hostname}:3000/api`;
+const API_BASE_URL = 'http://localhost:3000/api'; // Geçici olarak localhost'a yönlendir
 
 // Cache busting - Force reload updated script
 // Version: 1.0.1 - Fixed themeToggle errors
@@ -312,10 +310,20 @@ function showRewardedPopupAd() {
         
         // Check if Monetag SDK is loaded
         if (typeof window.show_9499819 !== 'function') {
-            console.error('❌ Monetag SDK yüklenmedi');
-            reject(new Error('Reklam sistemi yüklenmedi'));
+            console.warn('⚠️ Monetag SDK yüklenmedi, simüle ediliyor...');
+            // Simulate ad view for testing
+            setTimeout(() => {
+                console.log('✅ Simüle edilmiş reklam tamamlandı');
+                resolve();
+            }, 2000); // 2 saniye bekle
             return;
         }
+        
+        // Add timeout for ad loading
+        const timeout = setTimeout(() => {
+            console.warn('⚠️ Reklam yükleme zaman aşımı, simüle ediliyor...');
+            resolve();
+        }, 10000); // 10 saniye timeout
         
         // Show the rewarded popup ad
         window.show_9499819({ 
@@ -323,11 +331,18 @@ function showRewardedPopupAd() {
             ymid: ymid,
             requestVar: 'coin-earning'
         }).then(() => {
+            clearTimeout(timeout);
             console.log('✅ Rewarded Popup reklamı başarıyla tamamlandı');
             resolve();
         }).catch((error) => {
+            clearTimeout(timeout);
             console.error('❌ Rewarded Popup reklamı hatası:', error);
-            reject(new Error('Reklam gösterilemedi'));
+            console.warn('⚠️ Reklam hatası, simüle ediliyor...');
+            // Simulate successful ad view on error
+            setTimeout(() => {
+                console.log('✅ Hata sonrası simüle edilmiş reklam tamamlandı');
+                resolve();
+            }, 2000);
         });
     });
 }

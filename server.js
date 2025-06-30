@@ -84,7 +84,18 @@ bot.on('error', (error) => {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'https://atagylyjow.github.io',
+        'https://*.github.io',
+        'https://*.githubusercontent.com'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-User-ID']
+}));
 app.use(express.json());
 app.use(express.static('.'));
 
