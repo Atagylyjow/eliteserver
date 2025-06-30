@@ -193,23 +193,6 @@ function getUserId(req) {
     return `ip_${ip.replace(/[^a-zA-Z0-9]/g, '')}`;
 }
 
-// Kullanıcı verilerini al veya oluştur
-function getUserData(userId) {
-    const normalizedId = normalizeUserId(userId);
-    
-    if (!database.users[normalizedId]) {
-        database.users[normalizedId] = {
-            downloads: 0,
-            firstSeen: new Date().toISOString(),
-            coins: 0,
-            originalId: userId,
-            normalizedId: normalizedId
-        };
-    }
-    
-    return database.users[normalizedId];
-}
-
 // Yönetici kontrolü
 async function isAdmin(chatId) {
     const admin = await db.collection('admins').findOne({ chatId: parseInt(chatId, 10) });
@@ -624,23 +607,34 @@ app.post('/api/admin/delete-script', (req, res) => {
 });
 
 // Admin coin ekleme API
-app.post('/api/admin/add-coins', adminAuth, (req, res) => {
+app.post('/api/admin/add-coins', adminAuth, async (req, res) => {
     const { userId, amount } = req.body;
 
     if (!userId || !amount || amount <= 0) {
         return res.status(400).json({ success: false, error: 'Kullanıcı ID ve miktar gerekli' });
     }
 
-    const userData = getUserData(userId);
-    if (!userData) {
-        return res.status(404).json({ success: false, error: 'Kullanıcı bulunamadı' });
+    try {
+        const userToUpdate = await db.collection('users').findOne({ _id: userId });
+
+        if (!userToUpdate) {
+            return res.status(404).json({ success: false, error: 'Kullanıcı bulunamadı' });
+        }
+
+        const result = await db.collection('users').updateOne(
+            { _id: userId },
+            { $inc: { coins: parseInt(amount, 10) } }
+        );
+        
+        const updatedUser = await db.collection('users').findOne({ _id: userId });
+
+        log('info', 'Admin added coins to user', { adminId: req.body.adminId, userId, amount });
+        res.json({ success: true, newBalance: updatedUser.coins });
+
+    } catch (error) {
+        log('error', 'Admin add coins API error', { error: error.message });
+        res.status(500).json({ success: false, error: 'Sunucu hatası: Coin eklenemedi' });
     }
-
-    userData.coins = (userData.coins || 0) + amount;
-    writeDatabase();
-
-    log('info', 'Admin added coins to user', { adminId: req.body.adminId, userId, amount });
-    res.json({ success: true, newBalance: userData.coins });
 });
 
 // Bot komutları
