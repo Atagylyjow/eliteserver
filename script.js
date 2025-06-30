@@ -312,19 +312,20 @@ async function watchAd() {
 function showRewardedVideoAd() {
     return new Promise((resolve, reject) => {
         const userId = getUserId();
-        console.log(`🎬 Monetag Rewarded Video reklamı gösteriliyor... Kullanıcı: ${userId}`);
+        console.log(`🎬 Monetag Rewarded Video reklamı hazırlanıyor... Kullanıcı: ${userId}`);
 
-        // Check if Monetag SDK is loaded
         if (typeof window.show_9499819 !== 'function') {
             const errorMsg = '⚠️ Monetag SDK yüklenmedi, reklam gösterilemiyor.';
             console.error(errorMsg);
             return reject(new Error(errorMsg));
         }
-        
-        // Call the SDK for a Rewarded Interstitial (video ad)
-        window.show_9499819({ 
-            type: 'end', // Use 'end' for rewarded interstitial
-            ymid: userId 
+
+        // Call the SDK to show a Rewarded Interstitial
+        // catchIfNoFeed: true -> Rejects the promise if no ad is available
+        window.show_9499819({
+            type: 'end',
+            ymid: userId,
+            catchIfNoFeed: true // Explicitly handle no-ad-available case
         })
         .then(result => {
             console.log('🎉 Reklam sonucu alındı:', result);
@@ -338,8 +339,15 @@ function showRewardedVideoAd() {
             }
         })
         .catch(error => {
-            console.error('❌ Reklam gösterilirken bir hata oluştu:', error);
-            reject(error);
+            // Check for specific "no feed" error message if available, otherwise use a generic one.
+            const noAdAvailable = error && error.message && error.message.toLowerCase().includes('ad feed is empty');
+            if (noAdAvailable) {
+                console.warn('🤔 Gösterilecek reklam bulunamadı.');
+                reject(new Error('Şu anda mevcut bir reklam yok. Lütfen daha sonra tekrar deneyin.'));
+            } else {
+                console.error('❌ Reklam gösterilirken bir hata oluştu:', error);
+                reject(error);
+            }
         });
     });
 }
