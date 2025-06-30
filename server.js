@@ -173,6 +173,11 @@ function normalizeUserId(userId) {
 
 // Request'ten user ID'yi al
 function getUserId(req) {
+    // Headers'dan al (Öncelikli)
+    if (req.headers && req.headers['x-user-id']) {
+        return req.headers['x-user-id'].toString();
+    }
+
     // Telegram WebApp'den user ID'yi al
     if (req.body && req.body.user && req.body.user.id) {
         return req.body.user.id.toString();
@@ -181,11 +186,6 @@ function getUserId(req) {
     // Query parameter'dan al
     if (req.query && req.query.user_id) {
         return req.query.user_id.toString();
-    }
-    
-    // Headers'dan al
-    if (req.headers && req.headers['x-user-id']) {
-        return req.headers['x-user-id'].toString();
     }
     
     // IP adresini kullan (fallback)
@@ -336,25 +336,35 @@ app.get('/api/user/:userId/coins', (req, res) => {
     res.json({ success: true, coins: userData.coins || 0 });
 });
 
-// Kullanıcıya coin ekle
-app.post('/api/user/:userId/add-coins', (req, res) => {
-    const { userId } = req.params;
+// Kullanıcıya coin ekle (genel)
+app.post('/api/user/add-coins', async (req, res) => {
+    const userId = getUserId(req);
     const { amount } = req.body;
-    
+
     debug('Add coins API called', { userId, amount, ip: req.ip });
-    
-    if (!amount || amount <= 0) {
-        return res.status(400).json({ success: false, error: 'Geçerli coin miktarı gerekli' });
+
+    if (userId === 'anonymous' || !amount || amount <= 0) {
+        return res.status(400).json({ success: false, error: 'Geçerli kullanıcı ID ve miktar gerekli' });
     }
-    
-    const userData = getUserData(userId);
-    userData.coins = (userData.coins || 0) + amount;
-    
-    // Veritabanını kaydet
-    writeDatabase();
-    
-    log('info', 'Coins added to user', { userId, amount, newTotal: userData.coins });
-    res.json({ success: true, coins: userData.coins });
+
+    try {
+        const result = await db.collection('users').updateOne(
+            { _id: userId },
+            { 
+                $inc: { coins: amount },
+                $setOnInsert: { firstSeen: new Date() }
+            },
+            { upsert: true }
+        );
+
+        const updatedUser = await db.collection('users').findOne({ _id: userId });
+
+        log('info', 'Coins added to user', { userId, amount, newTotal: updatedUser.coins });
+        res.json({ success: true, coins: updatedUser.coins });
+    } catch (error) {
+        log('error', 'Add coins API error', { error: error.message });
+        res.status(500).json({ success: false, error: 'Coin eklenirken hata oluştu' });
+    }
 });
 
 // Kullanıcıdan coin çıkar

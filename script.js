@@ -231,24 +231,17 @@ function updateButtonStates() {
 // Add coins to user
 async function addCoins(amount) {
     try {
-        // Check if user is anonymous
         const currentUserId = getUserId();
         if (currentUserId === 'anonymous') {
-            showNotification('❌ Telegram WebApp üzerinden erişim gereklidir. Lütfen Telegram bot üzerinden uygulamayı açın.', 'error');
+            showNotification('❌ Telegram WebApp üzerinden erişim gereklidir.', 'error');
             return;
         }
-        
-        // Ensure userId is set
-        if (!userId) {
-            userId = currentUserId;
-        }
-        
-        console.log('💰 Coin ekleniyor:', { userId, amount });
-        
-        const response = await fetch(`${API_BASE_URL}/user/${userId}/add-coins?user_id=${userId}`, {
+
+        const response = await fetch(`${API_BASE_URL}/user/add-coins`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-User-ID': currentUserId
             },
             body: JSON.stringify({ amount })
         });
