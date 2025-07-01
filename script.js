@@ -18,6 +18,8 @@ let coinModalClose = null;
 let watchAdBtn = null;
 let themeToggle = null;
 
+let scripts = {};
+
 // Wait for Telegram WebApp to load
 function initializeTelegramWebApp() {
     console.log('🚀 initializeTelegramWebApp başlatılıyor...');
