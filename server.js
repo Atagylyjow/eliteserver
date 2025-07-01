@@ -313,6 +313,7 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
             acc[user._id.toString()] = user;
             return acc;
         }, {});
+        log('info', 'Users returned to admin', { totalUsers: usersArray.length, adminId: req.query.adminId });
         res.json({ success: true, users });
     } catch (error) {
         log('error', 'Failed to get users for admin', { error: error.message });

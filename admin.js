@@ -459,6 +459,7 @@ async function loadUsers() {
         if (response.ok) {
             const data = await response.json();
             users = data.users || {};
+            console.log('📊 Kullanıcılar yüklendi:', Object.keys(users).length, 'kullanıcı');
             displayUsers();
             updateUserStats();
         }
@@ -473,12 +474,15 @@ function displayUsers() {
     const usersList = document.getElementById('users-list');
     usersList.innerHTML = '';
     
-    if (Object.keys(users).length === 0) {
+    const userKeys = Object.keys(users);
+    console.log('📋 Kullanıcı listesi gösteriliyor:', userKeys.length, 'kullanıcı');
+    
+    if (userKeys.length === 0) {
         usersList.innerHTML = '<div class="no-data">Henüz kullanıcı bulunmuyor.</div>';
         return;
     }
     
-    Object.keys(users).forEach(userId => {
+    userKeys.forEach(userId => {
         const user = users[userId];
         const userElement = createUserElement(userId, user);
         usersList.appendChild(userElement);
@@ -495,24 +499,24 @@ function createUserElement(userId, user) {
     const joinDate = user.joinDate ? new Date(user.joinDate).toLocaleDateString('tr-TR') : 'Bilinmiyor';
     
     div.innerHTML = `
-        <div class="user-header">
-            <div class="user-info">
-                <div class="user-name">${userName}</div>
-                <div class="user-id">ID: ${userId}</div>
+        <div class="user-row">
+            <div class="user-info-compact">
+                <div class="user-name-compact">${userName}</div>
+                <div class="user-id-compact">ID: ${userId}</div>
             </div>
-            <div class="user-coins">🪙 ${userCoins} coins</div>
-        </div>
-        <div class="user-details">
-            <div class="user-join">Katılım: ${joinDate}</div>
-            <div class="user-downloads">İndirmeler: ${user.downloads || 0}</div>
-        </div>
-        <div class="user-actions">
-            <button class="btn-admin btn-primary btn-small" onclick="addCoinsToUser('${userId}')">
-                <i class="fas fa-plus"></i> Coin Ekle
-            </button>
-            <button class="btn-admin btn-secondary btn-small" onclick="viewUserDetails('${userId}')">
-                <i class="fas fa-eye"></i> Detaylar
-            </button>
+            <div class="user-stats-compact">
+                <span class="user-coins-compact">🪙 ${userCoins}</span>
+                <span class="user-join-compact">${joinDate}</span>
+                <span class="user-downloads-compact">📥 ${user.downloads || 0}</span>
+            </div>
+            <div class="user-actions-compact">
+                <button class="btn-admin btn-primary btn-small" onclick="addCoinsToUser('${userId}')" title="Coin Ekle">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="btn-admin btn-secondary btn-small" onclick="viewUserDetails('${userId}')" title="Detaylar">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
         </div>
     `;
     

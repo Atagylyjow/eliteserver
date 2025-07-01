@@ -314,6 +314,81 @@
             margin-bottom: 1rem;
             color: var(--text-primary);
         }
+        
+        /* Kompakt kullanıcı listesi stilleri */
+        .user-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .user-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .user-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        
+        .user-info-compact {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .user-name-compact {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-id-compact {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .user-stats-compact {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+        
+        .user-coins-compact {
+            color: #f59e0b;
+            font-weight: 600;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .user-join-compact {
+            color: var(--text-secondary);
+        }
+        
+        .user-downloads-compact {
+            color: var(--text-secondary);
+        }
+        
+        .user-actions-compact {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .user-actions-compact .btn-small {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.75rem;
+        }
     </style>
 </head>
 <body>
