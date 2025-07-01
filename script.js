@@ -86,7 +86,7 @@ function log(level, message, data = null) {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const token = process.env.TELEGRAM_BOT_TOKEN || '7762459827:AAFFQRGpSphgUqw2MHhMngCMQeBHZLHrHCo';
+const token = process.env.TELEGRAM_BOT_TOKEN || '7762459827:AAFdwhXyMA34GEB-khfqJb_3OJCvaQwYUdM';
 const bot = new TelegramBot(token, { polling: true });
 
 app.use(cors({
@@ -296,7 +296,7 @@ bot.onText(/\/start/, async (msg) => {
                 joinDate: new Date(),
             });
         }
-        const webAppUrl = `https://tg-web-app-1.onrender.com/?user_id=${userId}`;
+        const webAppUrl = `https://tg-web-app-fg41.onrender.com/?user_id=${userId}`;
         bot.sendMessage(chatId, `Merhaba ${msg.from.first_name}! Hoş Geldiniz.`, {
             reply_markup: {
                 inline_keyboard: [[{ text: "🚀 Uygulamayı Aç", web_app: { url: webAppUrl } }]]
