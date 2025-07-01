@@ -546,36 +546,45 @@ async function showShadowsocksConfig(price, script) {
 
 // Show mobile download modal
 function showMobileDownloadModal(filename, content, price) {
+    const t = translations[currentLang] || translations.tm; // Varsayılan Türkmence
+    
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'block';
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 90vw; max-height: 80vh;">
             <div class="modal-header">
-                <h3>📁 ${filename}</h3>
+                <h3>${t.modalTitle} ${filename}</h3>
                 <button class="modal-close" onclick="this.closest('.modal').remove()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-body">
                 <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; border-left: 4px solid #28a745;">
-                    <strong>✅ Başarıyla satın alındı!</strong><br>
-                    <small>${price} coin düşüldü. Dosya içeriği aşağıda:</small>
+                    <strong>${t.modalSuccess}</strong><br>
+                    <small>${price} ${t.modalCoinsDeducted}</small>
                 </div>
                 <div class="config-display">
                     <textarea id="mobile-config-textarea" style="width:100%; min-height:200px; background: var(--bg-secondary); padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; border: 1px solid var(--border-color);" readonly>${content}</textarea>
                     <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <button id="copy-mobile-config" class="btn btn-primary">
-                            <i class="fas fa-copy"></i> Kopyala
+                            <i class="fas fa-copy"></i> ${t.copyButton}
                         </button>
                         <button id="share-mobile-config" class="btn btn-secondary">
-                            <i class="fas fa-share"></i> Paylaş
+                            <i class="fas fa-share"></i> ${t.shareButton}
                         </button>
                         <button id="download-mobile-config" class="btn btn-success">
-                            <i class="fas fa-download"></i> İndir
+                            <i class="fas fa-download"></i> ${t.downloadButton}
                         </button>
                     </div>
-
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <strong>${t.howToSave}</strong><br>
+                        <small>
+                            ${t.howToSaveStep1}<br>
+                            ${t.howToSaveStep2}<br>
+                            ${t.howToSaveStep3}
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -634,7 +643,7 @@ function showMobileDownloadModal(filename, content, price) {
         
         if (downloadBtn && textarea) {
             downloadBtn.onclick = function() {
-                // Mobil için basit ve etkili indirme yöntemi
+                // Mobil için gelişmiş indirme yöntemi
                 try {
                     // Blob oluştur
                     const blob = new Blob([content], { 
@@ -644,44 +653,54 @@ function showMobileDownloadModal(filename, content, price) {
                     // Object URL oluştur
                     const url = URL.createObjectURL(blob);
                     
-                    // Yeni sekmede aç (en güvenilir yöntem)
-                    const newWindow = window.open(url, '_blank');
-                    if (newWindow) {
-                        newWindow.document.title = filename;
-                        // Sayfa yüklendiğinde indirme tetikle
-                        newWindow.onload = function() {
-                            const link = newWindow.document.createElement('a');
-                            link.href = url;
-                            link.download = filename;
-                            link.click();
-                        };
-                    }
+                    // Link oluştur ve özelliklerini ayarla
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.style.display = 'none';
+                    
+                    // Mobil için ek özellikler
+                    link.setAttribute('download', filename);
+                    link.setAttribute('type', 'text/plain');
+                    
+                    // Link'i sayfaya ekle ve tıkla
+                    document.body.appendChild(link);
+                    
+                    // Mobil tarayıcılar için touch event ekle
+                    const touchEvent = new TouchEvent('touchend', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    
+                    // Hem click hem touch event dene
+                    link.dispatchEvent(touchEvent);
+                    link.click();
+                    
+                    // Temizlik
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }, 1000);
                     
                     // Başarı mesajı
-                    downloadBtn.innerHTML = '<i class="fas fa-check"></i> Açıldı!';
+                    downloadBtn.innerHTML = '<i class="fas fa-check"></i> İndirildi!';
                     setTimeout(() => {
                         downloadBtn.innerHTML = '<i class="fas fa-download"></i> İndir';
                     }, 2000);
                     
-                    // Temizlik
+                    // Alternatif yöntem: Yeni sekmede aç
                     setTimeout(() => {
-                        URL.revokeObjectURL(url);
-                    }, 5000);
+                        const newWindow = window.open(url, '_blank');
+                        if (newWindow) {
+                            newWindow.document.title = filename;
+                        }
+                    }, 500);
                     
                 } catch (error) {
                     console.error('İndirme hatası:', error);
-                    // Hata durumunda sadece yeni sekmede aç
-                    try {
-                        const dataURL = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
-                        window.open(dataURL, '_blank');
-                        downloadBtn.innerHTML = '<i class="fas fa-check"></i> Açıldı!';
-                        setTimeout(() => {
-                            downloadBtn.innerHTML = '<i class="fas fa-download"></i> İndir';
-                        }, 2000);
-                    } catch (fallbackError) {
-                        console.error('Fallback indirme hatası:', fallbackError);
-                        showNotification('İndirme başarısız oldu', 'error');
-                    }
+                    // Hata durumunda alternatif yöntem
+                    showDownloadAlternatives(filename, content);
                 }
             };
         }
@@ -746,7 +765,92 @@ function shareToEmail() {
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
 }
 
+// Show download alternatives modal
+function showDownloadAlternatives(filename, content) {
+    const t = translations[currentLang] || translations.tm; // Varsayılan Türkmence
+    
+    const downloadModal = document.createElement('div');
+    downloadModal.className = 'modal';
+    downloadModal.style.display = 'block';
+    downloadModal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>📥 ${currentLang === 'ru' ? 'Варианты скачивания' : 'Göçürip alyş wariantlary'}</h3>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <strong>⚠️ ${currentLang === 'ru' ? 'Автоматическое скачивание не сработало' : 'Awtomatik göçürip alyş işlemedi'}</strong><br>
+                    <small>${currentLang === 'ru' ? 'Можешь использовать один из альтернативных методов:' : 'Alternatiw usullardan birini ulanyp bilersiň:'}</small>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button onclick="downloadAsDataURL('${filename}', '${btoa(content)}')" style="padding: 0.75rem; background: #007bff; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-download"></i> ${currentLang === 'ru' ? 'Скачать через Data URL' : 'Data URL arkaly göçür'}
+                    </button>
+                    <button onclick="downloadAsBlobURL('${filename}', '${btoa(content)}')" style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-file-download"></i> ${currentLang === 'ru' ? 'Скачать через Blob URL' : 'Blob URL arkaly göçür'}
+                    </button>
+                    <button onclick="openInNewTab('${filename}', '${btoa(content)}')" style="padding: 0.75rem; background: #17a2b8; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-external-link-alt"></i> ${currentLang === 'ru' ? 'Открыть в новой вкладке' : 'Täze tabda aç'}
+                    </button>
+                    <button onclick="this.closest('.modal').remove()" style="padding: 0.75rem; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <i class="fas fa-times"></i> ${currentLang === 'ru' ? 'Закрыть' : 'Ýap'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(downloadModal);
+}
 
+// Alternative download functions
+function downloadAsDataURL(filename, base64Content) {
+    try {
+        const content = atob(base64Content);
+        const dataURL = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = filename;
+        link.click();
+    } catch (error) {
+        console.error('Data URL indirme hatası:', error);
+        showNotification('İndirme başarısız oldu', 'error');
+    }
+}
+
+function downloadAsBlobURL(filename, base64Content) {
+    try {
+        const content = atob(base64Content);
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Blob URL indirme hatası:', error);
+        showNotification('İndirme başarısız oldu', 'error');
+    }
+}
+
+function openInNewTab(filename, base64Content) {
+    try {
+        const content = atob(base64Content);
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const newWindow = window.open(url, '_blank');
+        if (newWindow) {
+            newWindow.document.title = filename;
+        }
+    } catch (error) {
+        console.error('Yeni sekme açma hatası:', error);
+        showNotification('Yeni sekme açılamadı', 'error');
+    }
+}
 
 // Show notification
 function showNotification(message, type = 'info') {
@@ -1029,6 +1133,17 @@ const translations = {
         notEnoughCoin: '❌ Ýeterlik coin ýok! ',
         bought: 'Satyn alyndy we göçürildi!',
         error: 'Ýalňyşlyk ýüze çykdy',
+        // Modal metinleri
+        modalTitle: '📁',
+        modalSuccess: '✅ Üstünlikli satyn alyndy!',
+        modalCoinsDeducted: 'coin düşüldi. Faýl mazmuny aşakda:',
+        copyButton: 'Kopyala',
+        shareButton: 'Paýlaş',
+        downloadButton: 'Göçür',
+        howToSave: '💡 Näme üçin saklanmaly?',
+        howToSaveStep1: '1. <strong>Kopyala</strong> düwmesine bas → Mazmuny panoya kopyala',
+        howToSaveStep2: '2. <strong>Bellikler</strong> ýa-da <strong>Faýl Dolandyryjysy</strong> programmasyny aç',
+        howToSaveStep3: '3. Täze faýl döret → Mazmuny ýapışdyr → <strong>${filename}</strong> hökmünde sakla',
         // ... diğer metinler ...
     },
     ru: {
@@ -1048,6 +1163,17 @@ const translations = {
         notEnoughCoin: '❌ Недостаточно монет! ',
         bought: 'Успешно куплено и скачано!',
         error: 'Произошла ошибка',
+        // Modal metinleri
+        modalTitle: '📁',
+        modalSuccess: '✅ Успешно куплено!',
+        modalCoinsDeducted: 'монет списано. Содержимое файла ниже:',
+        copyButton: 'Копировать',
+        shareButton: 'Поделиться',
+        downloadButton: 'Скачать',
+        howToSave: '💡 Как сохранить?',
+        howToSaveStep1: '1. Нажми <strong>Копировать</strong> → Скопируй содержимое',
+        howToSaveStep2: '2. Открой <strong>Заметки</strong> или <strong>Файловый менеджер</strong>',
+        howToSaveStep3: '3. Создай новый файл → Вставь содержимое → Сохрани как <strong>${filename}</strong>',
         // ... diğer metinler ...
     }
 };
@@ -1095,6 +1221,18 @@ function setLanguage(lang) {
         coinModal.querySelector('h3').textContent = t.coinEarn;
         const watchBtn = document.getElementById('watch-ad-btn');
         if (watchBtn) watchBtn.innerHTML = `<i class="fas fa-play"></i> ${t.watchAd}`;
+    }
+    
+    // Modal butonlarını güncelle (eğer açıksa)
+    const mobileModal = document.querySelector('.modal');
+    if (mobileModal) {
+        const copyBtn = mobileModal.querySelector('#copy-mobile-config');
+        const shareBtn = mobileModal.querySelector('#share-mobile-config');
+        const downloadBtn = mobileModal.querySelector('#download-mobile-config');
+        
+        if (copyBtn) copyBtn.innerHTML = `<i class="fas fa-copy"></i> ${t.copyButton}`;
+        if (shareBtn) shareBtn.innerHTML = `<i class="fas fa-share"></i> ${t.shareButton}`;
+        if (downloadBtn) downloadBtn.innerHTML = `<i class="fas fa-download"></i> ${t.downloadButton}`;
     }
 }
 
