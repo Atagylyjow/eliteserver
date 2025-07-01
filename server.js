@@ -125,15 +125,41 @@ function errorHandler(err, req, res, next) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// const token = '7762459827:AAFdwhXyMA34GEB-khfqJb_3OJCvaQwYUdM';
-const token = '';
+// Botu tekrar aktif hale getir
+const token = '7762459827:AAFdwhXyMA34GEB-khfqJb_3OJCvaQwYUdM';
+const bot = new TelegramBot(token, { polling: true });
 
-// Bot oluşturmayı ve event handler'ları devre dışı bırak
-// const bot = new TelegramBot(token, { polling: true });
+bot.on('polling_error', (error) => {
+    log('error', 'Bot polling error', { error: error.message });
+});
 
-// bot.on('polling_error', (error) => {
-//     log('error', 'Bot polling error', { error: error.message });
-// });
+// Web App URL (güncel URL'nizi buraya yazın)
+const WEB_APP_URL = 'https://tg-web-app-fg41.onrender.com/';
+
+bot.onText(/\/start/, (msg) => {
+    const chatId = msg.chat.id;
+    const opts = {
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    { text: '🌐 Web App\'a Git', web_app: { url: WEB_APP_URL } }
+                ],
+                [
+                    { text: '🆔 ID Öğren', callback_data: 'get_id' }
+                ]
+            ]
+        }
+    };
+    bot.sendMessage(chatId, 'Hoş geldin! 👋\n\nAşağıdaki butonları kullanabilirsin:', opts);
+});
+
+bot.on('callback_query', (query) => {
+    const chatId = query.message.chat.id;
+    if (query.data === 'get_id') {
+        bot.answerCallbackQuery(query.id, { text: `ID: ${chatId}` });
+        bot.sendMessage(chatId, `Telegram ID'niz: <code>${chatId}</code>`, { parse_mode: 'HTML' });
+    }
+});
 
 // Middleware
 app.use(cors({
@@ -462,7 +488,7 @@ app.post('/api/admin/upload-script', upload.single('scriptFile'), (req, res) => 
     }
 });
 
-app.post('/api/admin/scripts/update', adminAuth, async (req, res) => {
+app.post('/api/admin/scripts/update', adminAuth, multer().none(), async (req, res) => {
     try {
         // Multer ile dosya yüklemesi varsa req.file üzerinden alınır
         const { id, name, description, filename } = req.body;
