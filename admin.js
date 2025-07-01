@@ -1,244 +1,603 @@
+// Backend API URL'si - Sunucunun çalıştığı Glitch adresi
+const API_BASE_URL = 'https://tg-web-app-1.onrender.com/api';
+
+// Admin ID (kendi chat ID'nizi buraya yazın)
+const ADMIN_ID = 7749779502; // Buraya kendi chat ID'nizi yazın
+
+// Global variables
+let scripts = {};
+let stats = {};
+let users = {};
+
+// Sayfa yüklendiğinde istatistikleri yükle
 document.addEventListener('DOMContentLoaded', () => {
-    // ---- CONFIGURATION ----
-    const API_BASE_URL = '/api'; // Using relative path
-    const ADMIN_ID = 7749779502; // IMPORTANT: Replace with your actual Telegram Admin ID
+    console.log('🔧 Admin panel başlatılıyor...');
+    loadStats();
+    loadScripts();
+    loadUsers();
+    setupEventListeners();
+});
 
-    // ---- STATE ----
-    let scripts = [];
-    let users = [];
-    let adSettings = {};
-
-    // ---- SELECTORS ----
-    const statsElements = {
-        totalDownloads: document.getElementById('total-downloads'),
-        totalUsers: document.getElementById('total-users'),
-        totalScripts: document.getElementById('total-scripts'),
-    };
-    const adSettingsForm = document.getElementById('ad-settings-form');
-    const scriptsListContainer = document.getElementById('scripts-list');
-    const usersListContainer = document.getElementById('users-list');
-    const scriptModal = document.getElementById('script-modal');
-    const scriptForm = document.getElementById('script-form');
-    const modalTitle = document.getElementById('modal-title');
+// Setup event listeners
+function setupEventListeners() {
+    const addScriptForm = document.getElementById('add-script-form');
+    if (addScriptForm) {
+        addScriptForm.addEventListener('submit', handleAddScript);
+    }
     
-    // ---- API HELPERS ----
-    const apiRequest = async (endpoint, method = 'GET', body = null) => {
-        const url = `${API_BASE_URL}${endpoint}`;
-        const headers = { 'Content-Type': 'application/json', 'X-User-ID': ADMIN_ID.toString() };
-        const options = {
-            method,
-            headers,
-        };
-        if (body) {
-            options.body = JSON.stringify(body);
+    const uploadForm = document.getElementById('upload-form');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', handleFileUpload);
+    }
+    
+    const addCoinForm = document.getElementById('add-coin-form');
+    if (addCoinForm) {
+        addCoinForm.addEventListener('submit', handleAddCoin);
+    }
+}
+
+// İstatistikleri yükle
+async function loadStats() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/stats`);
+        if (response.ok) {
+            stats = await response.json();
+            updateStatsDisplay();
         }
-        try {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.error(`API Error on ${method} ${endpoint}:`, error);
-            alert(`Hata: ${error.message}`);
-            throw error;
+    } catch (error) {
+        console.error('❌ İstatistikler yüklenirken hata:', error);
+        showNotification('❌ İstatistikler yüklenemedi', 'error');
+    }
+}
+
+// Update stats display
+function updateStatsDisplay() {
+    document.getElementById('total-downloads').textContent = stats.totalDownloads || 0;
+    document.getElementById('active-users').textContent = stats.activeUsers || 0;
+    document.getElementById('total-users').textContent = stats.totalUsers || 0;
+    document.getElementById('script-count').textContent = Object.keys(scripts).length;
+}
+
+// Load scripts
+async function loadScripts() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/scripts`);
+        if (response.ok) {
+            scripts = await response.json();
+            displayScripts();
+            updateStatsDisplay();
         }
-    };
+    } catch (error) {
+        console.error('❌ Scriptler yüklenirken hata:', error);
+        showNotification('❌ Scriptler yüklenemedi', 'error');
+    }
+}
 
-    // ---- DATA LOADING & RENDERING ----
-    const loadAllData = async () => {
-        try {
-            const [stats, ads, loadedScripts, loadedUsers] = await Promise.all([
-                apiRequest('/stats'),
-                apiRequest('/settings/ads'),
-                apiRequest('/scripts'),
-                apiRequest('/admin/users'),
-            ]);
+// Display scripts in the list
+function displayScripts() {
+    const scriptsList = document.getElementById('scripts-list');
+    scriptsList.innerHTML = '';
+    
+    Object.keys(scripts).forEach(scriptId => {
+        const script = scripts[scriptId];
+        const scriptElement = createScriptElement(scriptId, script);
+        scriptsList.appendChild(scriptElement);
+    });
+}
 
-            // Render Stats
-            statsElements.totalDownloads.textContent = stats.totalDownloads || 0;
-            statsElements.totalUsers.textContent = stats.totalUsers || 0;
-            statsElements.totalScripts.textContent = stats.totalScripts || 0;
-            
-            // Render Ad Settings
-            adSettings = ads;
-            if (adSettingsForm) {
-                adSettingsForm.frequency.value = adSettings.frequency || '';
-                adSettingsForm.capping.value = adSettings.capping || '';
-                adSettingsForm.interval.value = adSettings.interval || '';
-                adSettingsForm.timeout.value = adSettings.timeout || '';
-            }
-
-            // Render Scripts
-            scripts = loadedScripts;
-            scriptsListContainer.innerHTML = '';
-            scripts.forEach(script => scriptsListContainer.appendChild(createScriptElement(script)));
-            
-            // Render Users
-            users = loadedUsers;
-            usersListContainer.innerHTML = '';
-            users.forEach(user => usersListContainer.appendChild(createUserElement(user)));
-
-        } catch (error) {
-            console.error("Veri yüklenirken hata oluştu:", error);
-        }
-    };
-
-    const createScriptElement = (script) => {
+// Create script element
+function createScriptElement(scriptId, script) {
     const div = document.createElement('div');
     div.className = 'script-item';
+    
+    const scriptContent = script.content || '[İçerik Yok]'; // İçerik yoksa varsayılan metin
+
     div.innerHTML = `
         <div class="script-header">
-                <strong class="script-name">${script.name}</strong>
+            <div class="script-name">${script.name}</div>
             <div class="script-status ${script.enabled ? 'status-enabled' : 'status-disabled'}">
-                    ${script.enabled ? 'Aktif' : 'Pasif'}
-                </div>
+                ${script.enabled ? 'Aktif' : 'Devre Dışı'}
             </div>
-            <p class="script-description">${script.description || 'Açıklama yok.'}</p>
-            <small class="script-filename">Dosya: ${script.filename}</small>
+        </div>
+        <div class="script-content">${scriptContent.substring(0, 200)}${scriptContent.length > 200 ? '...' : ''}</div>
         <div class="script-actions">
-                <button class="btn-admin btn-primary" onclick="window.openScriptModal('${script._id}')"><i class="fas fa-edit"></i> Düzenle</button>
-                <button class="btn-admin btn-secondary" onclick="window.toggleScript('${script._id}')"><i class="fas fa-power-off"></i> Durum Değiştir</button>
-                <button class="btn-admin btn-danger" onclick="window.deleteScript('${script._id}')"><i class="fas fa-trash"></i> Sil</button>
+            <button class="btn-admin btn-primary btn-small" onclick="editScript('${scriptId}')">
+                <i class="fas fa-edit"></i> Düzenle
+            </button>
+            <button class="btn-admin btn-secondary btn-small" onclick="toggleScript('${scriptId}')">
+                <i class="fas fa-power-off"></i> ${script.enabled ? 'Devre Dışı Bırak' : 'Etkinleştir'}
+            </button>
+            <button class="btn-admin btn-danger btn-small" onclick="deleteScript('${scriptId}')">
+                <i class="fas fa-trash"></i> Sil
+            </button>
         </div>
     `;
-        return div;
-    };
     
-    const createUserElement = (user) => {
-        const div = document.createElement('div');
-        div.className = 'user-item';
-        const joinDate = new Date(user.joinDate).toLocaleDateString('tr-TR');
-        div.innerHTML = `
-            <p><strong>Kullanıcı:</strong> ${user.firstName || 'Bilinmiyor'} (@${user.username || 'yok'})</p>
-            <p><strong>ID:</strong> ${user.userId}</p>
-            <p><strong>Jeton:</strong> ${user.coins || 0}</p>
-            <p><strong>Katılım:</strong> ${joinDate}</p>
-            <button class="btn-admin btn-primary btn-small" onclick="window.addCoinsToUser('${user.userId}')">
-                <i class="fas fa-coins"></i> Jeton Ekle
-            </button>
-        `;
     return div;
-    };
+}
 
-
-    // ---- EVENT HANDLERS & MODAL LOGIC ----
+// Handle add script form submission
+async function handleAddScript(event) {
+    event.preventDefault();
     
-    // Ad Ayarlarını Kaydet
-    adSettingsForm.addEventListener('submit', async (e) => {
+    const formData = new FormData(event.target);
+    const scriptData = {
+        name: formData.get('script-name'),
+        description: formData.get('script-description'),
+        content: formData.get('script-content'),
+        filename: formData.get('script-filename')
+    };
+    
+    const scriptId = formData.get('script-id');
+    const url = scriptId ? `${API_BASE_URL}/admin/edit-script/${scriptId}` : `${API_BASE_URL}/admin/add-script`;
+    const method = scriptId ? 'PUT' : 'POST';
+
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                scriptData: scriptData
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification('✅ Script başarıyla eklendi!', 'success');
+            event.target.reset();
+            loadScripts();
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Script eklenemedi');
+        }
+    } catch (error) {
+        console.error('❌ Script ekleme hatası:', error);
+        showNotification('❌ Script eklenemedi: ' + error.message, 'error');
+    }
+}
+
+// Script düzenleme fonksiyonu
+function editScript(scriptId) {
+    const script = scripts[scriptId];
+    if (!script) {
+        showNotification('Script bulunamadı!', 'error');
+        return;
+    }
+    
+    // Form alanlarını doldur
+    document.getElementById('edit-script-id').value = scriptId;
+    document.getElementById('edit-script-name').value = script.name;
+    document.getElementById('edit-script-description').value = script.description;
+    document.getElementById('edit-script-filename').value = script.filename;
+    
+    // Düzenleme bölümünü göster
+    document.getElementById('edit-script-section').style.display = 'block';
+    
+    // Sayfayı düzenleme bölümüne kaydır
+    document.getElementById('edit-script-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Script düzenleme formu gönderimi
+document.getElementById('edit-script-form').addEventListener('submit', async function(e) {
     e.preventDefault();
-        const settings = {
-            frequency: parseInt(adSettingsForm.frequency.value, 10),
-            capping: adSettingsForm.capping.value,
-            interval: adSettingsForm.interval.value,
-            timeout: adSettingsForm.timeout.value,
-        };
-        try {
-            await apiRequest('/admin/settings/ads', 'POST', { settings });
-            alert('Reklam ayarları başarıyla güncellendi!');
-            loadAllData();
-        } catch (error) {
-            // Error is already alerted by apiRequest
-        }
-    });
-
-    // Script Formunu Kaydet (Ekleme/Düzenleme)
-    scriptForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const scriptId = scriptForm.id.value;
-        const body = {
-            name: scriptForm.name.value,
-            filename: scriptForm.filename.value,
-            description: scriptForm.description.value,
-            content: scriptForm.content.value,
-        };
-
-        try {
-            if (scriptId) {
-                await apiRequest(`/admin/scripts/${scriptId}`, 'PUT', body);
-                alert('Script başarıyla güncellendi!');
-        } else {
-                await apiRequest('/admin/scripts', 'POST', body);
-                alert('Script başarıyla eklendi!');
-            }
-            closeScriptModal();
-            loadAllData();
-        } catch (error) {
-           // Error is already alerted by apiRequest
-        }
-    });
-
-    // ---- GLOBAL FUNCTIONS (for inline onlick handlers) ----
-    window.openScriptModal = (scriptId = null) => {
-        scriptForm.reset();
-        if (scriptId) {
-            modalTitle.textContent = 'Script Düzenle';
-            const script = scripts.find(s => s._id === scriptId);
-            if (script) {
-                scriptForm.id.value = script._id;
-                scriptForm.name.value = script.name;
-                scriptForm.filename.value = script.filename;
-                scriptForm.description.value = script.description;
-                scriptForm.content.value = script.content;
-            }
-        } else {
-            modalTitle.textContent = 'Yeni Script Ekle';
-            scriptForm.id.value = '';
-        }
-        scriptModal.style.display = 'flex';
-    };
-
-    window.closeScriptModal = () => {
-        scriptModal.style.display = 'none';
-    };
-
-    window.deleteScript = async (scriptId) => {
-        if (confirm('Bu scripti silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
-            try {
-                await apiRequest(`/admin/scripts/${scriptId}`, 'DELETE');
-                alert('Script başarıyla silindi.');
-                loadAllData();
-    } catch (error) {
-                // Error is already alerted by apiRequest
-            }
-        }
-    };
     
-    window.toggleScript = async (scriptId) => {
-         if (confirm('Scriptin durumunu değiştirmek istediğinizden emin misiniz?')) {
-            try {
-                await apiRequest(`/admin/scripts/toggle/${scriptId}`, 'POST');
-                alert('Script durumu başarıyla değiştirildi.');
-                loadAllData();
-            } catch (error) {
-                 // Error is already alerted by apiRequest
-            }
-        }
-    };
+    const scriptId = document.getElementById('edit-script-id').value;
+    const name = document.getElementById('edit-script-name').value;
+    const description = document.getElementById('edit-script-description').value;
+    const filename = document.getElementById('edit-script-filename').value;
+    const uploadFile = document.getElementById('edit-upload-file').files[0];
     
-    window.addCoinsToUser = async (userId) => {
-        const amount = prompt(`Kullanıcı ${userId} için eklenecek jeton miktarını girin:`);
-        if (amount && !isNaN(amount) && parseInt(amount, 10) > 0) {
-            try {
-                await apiRequest('/admin/add-coins', 'POST', { userId, amount: parseInt(amount, 10) });
-                alert('Jetonlar başarıyla eklendi.');
-                loadAllData();
+    try {
+        const formData = new FormData();
+        formData.append('id', scriptId);
+        formData.append('name', name);
+        formData.append('description', description);
+        formData.append('filename', filename);
+        
+        // Eğer yeni dosya yüklendiyse, dosyayı da ekle
+        if (uploadFile) {
+            formData.append('file', uploadFile);
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/admin/scripts/update`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            showNotification('Script başarıyla güncellendi!', 'success');
+            cancelEdit();
+            loadScripts();
+        } else {
+            const error = await response.text();
+            showNotification(`Güncelleme hatası: ${error}`, 'error');
+        }
     } catch (error) {
-                 // Error is already alerted by apiRequest
-            }
-        } else if(amount) {
-            alert('Lütfen geçerli bir sayı girin.');
-        }
-    };
-
-    // Close modal if clicked outside
-    window.onclick = (event) => {
-        if (event.target === scriptModal) {
-            closeScriptModal();
-        }
-    };
-
-    // ---- INITIALIZATION ----
-    loadAllData();
+        showNotification(`Güncelleme hatası: ${error.message}`, 'error');
+    }
 });
+
+// Düzenleme iptal etme
+function cancelEdit() {
+    document.getElementById('edit-script-section').style.display = 'none';
+    document.getElementById('edit-script-form').reset();
+    document.getElementById('edit-upload-file').value = '';
+}
+
+// Toggle script status
+async function toggleScript(scriptId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/toggle-script`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID,
+                scriptId: scriptId
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification('✅ Script durumu değiştirildi!', 'success');
+            loadScripts();
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Script durumu değiştirilemedi');
+        }
+    } catch (error) {
+        console.error('❌ Script toggle hatası:', error);
+        showNotification('❌ Script durumu değiştirilemedi: ' + error.message, 'error');
+    }
+}
+
+// Delete script
+async function deleteScript(scriptId) {
+    if (!confirm(`"${scripts[scriptId]?.name}" scriptini silmek istediğinizden emin misiniz?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/delete-script`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID,
+                scriptId: scriptId
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification('✅ Script başarıyla silindi!', 'success');
+            loadScripts();
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Script silinemedi');
+        }
+    } catch (error) {
+        console.error('❌ Script silme hatası:', error);
+        showNotification('❌ Script silinemedi: ' + error.message, 'error');
+    }
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Show notification
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    // Hide and remove notification
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// Export functions to global scope
+window.loadScripts = loadScripts;
+window.editScript = editScript;
+window.toggleScript = toggleScript;
+window.deleteScript = deleteScript;
+window.clearUploadForm = clearUploadForm;
+
+// Yeni script ekleme modalını göster
+function showAddScriptModal() {
+    document.getElementById('add-script-modal').classList.add('show');
+}
+
+// Toplu mesaj modalını göster
+function showBroadcastModal() {
+    document.getElementById('broadcast-modal').classList.add('show');
+}
+
+// Modal'ı gizle
+function hideModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+/*
+// Toplu mesaj formu
+document.getElementById('broadcast-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const message = document.getElementById('broadcast-message').value;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/broadcast`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID,
+                message: message
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Toplu mesaj gönderildi', 'success');
+            hideModal('broadcast-modal');
+            document.getElementById('broadcast-form').reset();
+        } else {
+            showNotification(result.error, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Toplu mesaj gönderilirken hata:', error);
+        showNotification('Toplu mesaj gönderilemedi', 'error');
+    }
+});
+*/
+
+// Modal dışına tıklandığında kapat
+window.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('show');
+    }
+});
+
+// ESC tuşu ile modal'ları kapat
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal.show').forEach(modal => {
+            modal.classList.remove('show');
+        });
+    }
+}); 
+
+// Handle file upload
+async function handleFileUpload(event) {
+    event.preventDefault();
+    
+    const fileInput = document.getElementById('upload-file');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showNotification('❌ Lütfen bir dosya seçin', 'error');
+        return;
+    }
+    
+    // Check file size (max 1MB)
+    if (file.size > 1024 * 1024) {
+        showNotification('❌ Dosya boyutu 1MB\'dan büyük olamaz', 'error');
+        return;
+    }
+    
+    const scriptData = {
+        id: document.getElementById('upload-script-id').value,
+        name: document.getElementById('upload-script-name').value,
+        description: document.getElementById('upload-script-description').value,
+        filename: file.name // Use original filename
+    };
+    
+    try {
+        // Read file content
+        const content = await readFileAsText(file);
+        
+        // Add content to script data
+        scriptData.content = content;
+        
+        // Upload to server
+        const response = await fetch(`${API_BASE_URL}/admin/add-script`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID,
+                scriptData: scriptData
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification('✅ Dosya başarıyla yüklendi!', 'success');
+            clearUploadForm();
+            loadScripts();
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Dosya yüklenemedi');
+        }
+    } catch (error) {
+        console.error('❌ Dosya yükleme hatası:', error);
+        showNotification('❌ Dosya yüklenemedi: ' + error.message, 'error');
+    }
+}
+
+// Read file as text
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(new Error('Dosya okunamadı'));
+        reader.readAsText(file);
+    });
+}
+
+// Clear upload form
+function clearUploadForm() {
+    document.getElementById('upload-form').reset();
+}
+
+// Load users
+async function loadUsers() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/users?adminId=${ADMIN_ID}`);
+        if (response.ok) {
+            const data = await response.json();
+            users = data.users || {};
+            displayUsers();
+            updateUserStats();
+        }
+    } catch (error) {
+        console.error('❌ Kullanıcılar yüklenirken hata:', error);
+        showNotification('❌ Kullanıcılar yüklenemedi', 'error');
+    }
+}
+
+// Display users in the list
+function displayUsers() {
+    const usersList = document.getElementById('users-list');
+    usersList.innerHTML = '';
+    
+    if (Object.keys(users).length === 0) {
+        usersList.innerHTML = '<div class="no-data">Henüz kullanıcı bulunmuyor.</div>';
+        return;
+    }
+    
+    Object.keys(users).forEach(userId => {
+        const user = users[userId];
+        const userElement = createUserElement(userId, user);
+        usersList.appendChild(userElement);
+    });
+}
+
+// Create user element
+function createUserElement(userId, user) {
+    const div = document.createElement('div');
+    div.className = 'user-item';
+    
+    const userName = user.name || user.username || `Kullanıcı ${userId}`;
+    const userCoins = user.coins || 0;
+    const joinDate = user.joinDate ? new Date(user.joinDate).toLocaleDateString('tr-TR') : 'Bilinmiyor';
+    
+    div.innerHTML = `
+        <div class="user-header">
+            <div class="user-info">
+                <div class="user-name">${userName}</div>
+                <div class="user-id">ID: ${userId}</div>
+            </div>
+            <div class="user-coins">🪙 ${userCoins} coins</div>
+        </div>
+        <div class="user-details">
+            <div class="user-join">Katılım: ${joinDate}</div>
+            <div class="user-downloads">İndirmeler: ${user.downloads || 0}</div>
+        </div>
+        <div class="user-actions">
+            <button class="btn-admin btn-primary btn-small" onclick="addCoinsToUser('${userId}')">
+                <i class="fas fa-plus"></i> Coin Ekle
+            </button>
+            <button class="btn-admin btn-secondary btn-small" onclick="viewUserDetails('${userId}')">
+                <i class="fas fa-eye"></i> Detaylar
+            </button>
+        </div>
+    `;
+    
+    return div;
+}
+
+// Update user statistics
+function updateUserStats() {
+    const totalUsers = Object.keys(users).length;
+    const totalCoins = Object.values(users).reduce((sum, user) => sum + (user.coins || 0), 0);
+    const avgCoins = totalUsers > 0 ? Math.round(totalCoins / totalUsers) : 0;
+    
+    document.getElementById('total-users-count').textContent = totalUsers;
+    document.getElementById('total-coins').textContent = totalCoins;
+    document.getElementById('avg-coins').textContent = avgCoins;
+}
+
+// Handle add coin form submission
+async function handleAddCoin(event) {
+    event.preventDefault();
+    
+    const userId = document.getElementById('user-id').value;
+    const coinAmount = parseInt(document.getElementById('coin-amount').value);
+    const reason = document.getElementById('coin-reason').value;
+    
+    if (!userId || !coinAmount || coinAmount <= 0) {
+        showNotification('❌ Geçerli kullanıcı ID ve coin miktarı gerekli', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/add-coins`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                adminId: ADMIN_ID,
+                userId: userId,
+                amount: coinAmount,
+                reason: reason
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showNotification(`✅ ${coinAmount} coin başarıyla eklendi!`, 'success');
+            document.getElementById('add-coin-form').reset();
+            loadUsers();
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Coin eklenemedi');
+        }
+    } catch (error) {
+        console.error('❌ Coin ekleme hatası:', error);
+        showNotification('❌ Coin eklenemedi: ' + error.message, 'error');
+    }
+}
+
+// Add coins to specific user
+function addCoinsToUser(userId) {
+    document.getElementById('user-id').value = userId;
+    document.getElementById('coin-amount').focus();
+}
+
+// View user details
+function viewUserDetails(userId) {
+    const user = users[userId];
+    if (!user) {
+        showNotification('Kullanıcı bulunamadı!', 'error');
+        return;
+    }
+    
+    const details = `
+Kullanıcı Detayları:
+ID: ${userId}
+Ad: ${user.name || user.username || 'Bilinmiyor'}
+Coin: ${user.coins || 0}
+İndirmeler: ${user.downloads || 0}
+Katılım: ${user.joinDate ? new Date(user.joinDate).toLocaleDateString('tr-TR') : 'Bilinmiyor'}
+    `;
+    
+    alert(details);
+} 
