@@ -571,9 +571,14 @@ function showMobileDownloadModal(filename, content, price) {
                         <button id="share-mobile-config" class="btn btn-secondary">
                             <i class="fas fa-share"></i> Paylaş
                         </button>
-                        <button id="save-mobile-config" class="btn btn-success">
-                            <i class="fas fa-save"></i> Kaydet
-                        </button>
+                    </div>
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <strong>💡 Nasıl Kaydedilir?</strong><br>
+                        <small>
+                            1. <strong>Kopyala</strong> butonuna bas → İçeriği panoya kopyala<br>
+                            2. <strong>Notlar</strong> veya <strong>Dosya Yöneticisi</strong> uygulamasını aç<br>
+                            3. Yeni dosya oluştur → İçeriği yapıştır → <strong>${filename}</strong> olarak kaydet
+                        </small>
                     </div>
                 </div>
             </div>
@@ -586,7 +591,6 @@ function showMobileDownloadModal(filename, content, price) {
     setTimeout(() => {
         const copyBtn = document.getElementById('copy-mobile-config');
         const shareBtn = document.getElementById('share-mobile-config');
-        const saveBtn = document.getElementById('save-mobile-config');
         const textarea = document.getElementById('mobile-config-textarea');
         
         if (copyBtn && textarea) {
@@ -602,45 +606,93 @@ function showMobileDownloadModal(filename, content, price) {
         
         if (shareBtn && textarea) {
             shareBtn.onclick = function() {
-                if (navigator.share) {
-                    navigator.share({
-                        title: filename,
-                        text: content,
-                        url: window.location.href
-                    });
-                } else {
-                    // Fallback: copy to clipboard
-                    textarea.select();
-                    document.execCommand('copy');
-                    shareBtn.innerHTML = '<i class="fas fa-check"></i> Kopyalandı!';
-                    setTimeout(() => {
-                        shareBtn.innerHTML = '<i class="fas fa-share"></i> Paylaş';
-                    }, 1500);
-                }
-            };
-        }
-        
-        if (saveBtn && textarea) {
-            saveBtn.onclick = function() {
-                // Try to trigger download on mobile
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+                // Önce panoya kopyala
+                textarea.select();
+                document.execCommand('copy');
                 
-                saveBtn.innerHTML = '<i class="fas fa-check"></i> Kaydedildi!';
+                // Share API'yi dene
+                if (navigator.share && navigator.canShare) {
+                    try {
+                        navigator.share({
+                            title: filename,
+                            text: content.substring(0, 100) + '...', // İlk 100 karakter
+                            url: window.location.href
+                        }).catch(() => {
+                            // Share başarısız olursa sadece kopyalandı mesajı göster
+                            showShareOptions();
+                        });
+                    } catch (error) {
+                        showShareOptions();
+                    }
+                } else {
+                    showShareOptions();
+                }
+                
+                shareBtn.innerHTML = '<i class="fas fa-check"></i> Kopyalandı!';
                 setTimeout(() => {
-                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Kaydet';
+                    shareBtn.innerHTML = '<i class="fas fa-share"></i> Paylaş';
                 }, 1500);
             };
         }
+        
+
     }, 100);
+}
+
+// Show share options modal
+function showShareOptions() {
+    const shareModal = document.createElement('div');
+    shareModal.className = 'modal';
+    shareModal.style.display = 'block';
+    shareModal.innerHTML = `
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>📤 Paylaşım Seçenekleri</h3>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 1rem;">
+                    <p><strong>✅ İçerik panoya kopyalandı!</strong></p>
+                    <p>Şimdi şu seçeneklerden birini kullanabilirsin:</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button onclick="shareToTelegram()" style="padding: 0.75rem; background: #0088cc; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-telegram"></i> Telegram'da Paylaş
+                    </button>
+                    <button onclick="shareToWhatsApp()" style="padding: 0.75rem; background: #25d366; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-whatsapp"></i> WhatsApp'ta Paylaş
+                    </button>
+                    <button onclick="shareToEmail()" style="padding: 0.75rem; background: #ea4335; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-envelope"></i> Email ile Paylaş
+                    </button>
+                    <button onclick="this.closest('.modal').remove()" style="padding: 0.75rem; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <i class="fas fa-times"></i> Kapat
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(shareModal);
+}
+
+// Share functions
+function shareToTelegram() {
+    const text = encodeURIComponent('VPN Script içeriği panoya kopyalandı. Telegram\'da yapıştırabilirsin.');
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${text}`, '_blank');
+}
+
+function shareToWhatsApp() {
+    const text = encodeURIComponent('VPN Script içeriği panoya kopyalandı. WhatsApp\'ta yapıştırabilirsin.');
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+}
+
+function shareToEmail() {
+    const subject = encodeURIComponent('VPN Script');
+    const body = encodeURIComponent('VPN Script içeriği panoya kopyalandı. Email\'de yapıştırabilirsin.');
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
 }
 
 // Show notification
