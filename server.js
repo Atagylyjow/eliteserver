@@ -509,10 +509,7 @@ app.post('/api/admin/scripts/update', adminAuth, multer().none(), async (req, re
             filename
         };
         // Eğer yeni dosya yüklendiyse, içeriği güncelle
-        if (req.file) {
-            const newContent = fs.readFileSync(req.file.path, 'utf8');
-            updateData.content = newContent;
-        } else if (req.body.content) {
+        if (req.body.content) {
             updateData.content = req.body.content;
         }
         // Script'i güncelle

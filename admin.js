@@ -180,21 +180,6 @@ function editScript(scriptId) {
     document.getElementById('edit-script-section').scrollIntoView({ behavior: 'smooth' });
 }
 
-// Dosya seçilirse içeriği textarea'ya yaz
-const editUploadFile = document.getElementById('edit-upload-file');
-if (editUploadFile) {
-    editUploadFile.addEventListener('change', async function() {
-        const file = this.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('edit-script-content').value = e.target.result;
-            };
-            reader.readAsText(file);
-        }
-    });
-}
-
 // Script düzenleme formu gönderimi
 document.getElementById('edit-script-form').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -204,7 +189,6 @@ document.getElementById('edit-script-form').addEventListener('submit', async fun
     const description = document.getElementById('edit-script-description').value;
     const filename = document.getElementById('edit-script-filename').value;
     const content = document.getElementById('edit-script-content').value;
-    const uploadFile = document.getElementById('edit-upload-file').files[0];
     
     try {
         const formData = new FormData();
@@ -214,9 +198,6 @@ document.getElementById('edit-script-form').addEventListener('submit', async fun
         formData.append('filename', filename);
         formData.append('content', content);
         formData.append('adminId', ADMIN_ID);
-        if (uploadFile) {
-            formData.append('file', uploadFile);
-        }
         const response = await fetch(`${API_BASE_URL}/admin/scripts/update`, {
             method: 'POST',
             body: formData
