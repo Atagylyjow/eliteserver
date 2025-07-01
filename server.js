@@ -623,3 +623,10 @@ bot.onText(/\/stats/, async (msg) => {
 web_app: { url: `https://tg-web-app-fg41.onrender.com/` }
 webAppUrl: `https://tg-web-app-fg41.onrender.com/`,
 console.log(`🌐 Web App URL: https://tg-web-app-fg41.onrender.com/`);
+
+// Sunucuyu başlat
+connectToDb().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server started on port ${PORT}`);
+  });
+});
