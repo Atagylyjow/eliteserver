@@ -195,6 +195,7 @@ document.getElementById('edit-script-form').addEventListener('submit', async fun
         formData.append('name', name);
         formData.append('description', description);
         formData.append('filename', filename);
+        formData.append('adminId', ADMIN_ID);
         
         // Eğer yeni dosya yüklendiyse, dosyayı da ekle
         if (uploadFile) {
