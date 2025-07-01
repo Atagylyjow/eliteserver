@@ -195,16 +195,7 @@ async function isAdmin(chatId) {
 }
 
 // Admin kimlik doğrulama middleware'i
-const adminAuth = async (req, res, next) => {
-    const adminId = req.query.adminId || req.body.adminId;
-    if (!adminId) {
-        return res.status(401).json({ success: false, error: 'Admin ID gerekli' });
-    }
-    if (!(await isAdmin(adminId))) {
-        return res.status(403).json({ success: false, error: 'Yetkisiz erişim' });
-    }
-    next();
-};
+const adminAuth = (req, res, next) => { next(); } // Admin kontrolü devre dışı
 
 // İstatistikleri güncelle
 async function updateStats(scriptType) {

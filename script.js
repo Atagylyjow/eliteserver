@@ -374,51 +374,42 @@ function toggleTheme() {
 }
 
 // Download Script Function
-async function downloadScript(scriptName) {
+async function downloadScript(scriptId) {
     try {
-        console.log(`🔽 '${scriptName}' scripti işleniyor...`);
-        
+        console.log(`🔽 '${scriptId}' scripti (ObjectId) işleniyor...`);
         // Check if user is anonymous
         const currentUserId = getUserId();
         if (currentUserId === 'anonymous') {
             showNotification('❌ Telegram WebApp üzerinden erişim gereklidir. Lütfen Telegram bot üzerinden uygulamayı açın.', 'error');
             return;
         }
-        
         // Get the price from the button
-        const button = document.querySelector(`[data-script="${scriptName}"]`);
+        const button = document.querySelector(`[data-script="${scriptId}"]`);
         const price = parseInt(button.getAttribute('data-price')) || 5;
-        
         // Check if user has enough coins
         if (userCoins < price) {
             showNotification(`❌ Yeterli coin yok! ${price} coin gerekli, ${userCoins} coin var.`, 'error');
             return;
         }
-        
-        // Check if it's Shadowsocks (show config instead of download)
-        if (scriptName === 'shadowsocks') {
-            await showShadowsocksConfig(price);
+        // Script adı ve shadowsocks kontrolü için scripts listesinden bul
+        const script = scripts[scriptId];
+        if (script && script.name && script.name.toLowerCase().includes('shadowsocks')) {
+            await showShadowsocksConfig(price, script);
             return;
         }
-
         // Deduct coins first
         await deductCoins(price);
-
         // Download the script
-        const response = await fetch(`${API_BASE_URL}/download/${scriptName}?user_id=${currentUserId}`, {
+        const response = await fetch(`${API_BASE_URL}/download/${scriptId}?user_id=${currentUserId}`, {
             method: 'GET'
         });
-
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-
         // Get the script content
         const content = await response.text();
-        
         // Get filename from server response - try multiple methods
-        let filename = `${scriptName}.conf`; // fallback
-        
+        let filename = script && script.filename ? script.filename : `${scriptId}.conf`;
         // Method 1: Try to get from Content-Disposition header
         const contentDisposition = response.headers.get('content-disposition');
         if (contentDisposition) {
@@ -428,37 +419,29 @@ async function downloadScript(scriptName) {
                 console.log('✅ Filename from Content-Disposition:', filename);
             }
         }
-        
         // Method 2: Try to get from response headers
-        if (!filename || filename === `${scriptName}.conf`) {
+        if (!filename || filename === `${scriptId}.conf`) {
             const serverFilename = response.headers.get('x-filename');
             if (serverFilename) {
                 filename = serverFilename;
                 console.log('✅ Filename from X-Filename header:', filename);
             }
         }
-        
         console.log('📁 Final filename:', filename);
-        
         // Create a Blob from the script content
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        
         // Create an object URL from the Blob
         const url = URL.createObjectURL(blob);
-        
         // Create a temporary link to trigger the download
         const link = document.createElement('a');
         link.href = url;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
-        
         // Clean up
         document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-        showNotification(`✅ '${scriptName}' başarıyla satın alındı ve indirildi! (${price} coin düşüldü)`, 'success');
-
+        URL.revokeObjectURL(url);
+        showNotification(`✅ '${filename}' başarıyla satın alındı ve indirildi! (${price} coin düşüldü)`, 'success');
     } catch (error) {
         console.error('❌ Script satın alma hatası:', error);
         showNotification(`❌ Script satın alınamadı: ${error.message}`, 'error');
@@ -503,22 +486,12 @@ async function deductCoins(amount) {
     }
 }
 
-// Show Shadowsocks Configuration
-async function showShadowsocksConfig(price) {
+// Show Shadowsocks Configuration (ObjectId ile)
+async function showShadowsocksConfig(price, script) {
     try {
         // Deduct coins first
         await deductCoins(price);
-        
-        const response = await fetch(`${API_BASE_URL}/scripts`);
-        
-        if (!response.ok) {
-            throw new Error('Script bilgileri alınamadı');
-        }
-        
-        const scripts = await response.json();
-        const shadowsocks = scripts.shadowsocks;
-        
-        if (shadowsocks && shadowsocks.content) {
+        if (script && script.content) {
             // Create modal to show configuration
             const configModal = document.createElement('div');
             configModal.className = 'modal';
@@ -533,42 +506,17 @@ async function showShadowsocksConfig(price) {
                     </div>
                     <div class="modal-body">
                         <div class="config-display">
-                            <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.9rem;">${shadowsocks.content}</pre>
-                        </div>
-                        <div class="config-actions" style="margin-top: 1rem; text-align: center;">
-                            <button class="btn btn-primary" onclick="copyConfig()">
-                                <i class="fas fa-copy"></i>
-                                Kopyala
-                            </button>
-                            <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
-                                <i class="fas fa-times"></i>
-                                Kapat
-                            </button>
+                            <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.9rem;">${script.content}</pre>
                         </div>
                     </div>
                 </div>
             `;
-            
             document.body.appendChild(configModal);
-            
-            // Add copy function to window
-            window.copyConfig = function() {
-                navigator.clipboard.writeText(shadowsocks.content).then(() => {
-                    showNotification('✅ Konfigürasyon kopyalandı!', 'success');
-                }).catch(() => {
-                    showNotification('❌ Kopyalama başarısız', 'error');
-                });
-            };
-            
-            showNotification(`✅ Shadowsocks konfigürasyonu satın alındı! (${price} coin düşüldü)`, 'success');
-            
         } else {
-            throw new Error('Shadowsocks konfigürasyonu bulunamadı');
+            showNotification('Shadowsocks scripti bulunamadı!', 'error');
         }
-        
     } catch (error) {
-        console.error('❌ Shadowsocks konfigürasyonu gösterilirken hata:', error);
-        showNotification('❌ Konfigürasyon satın alınamadı: ' + error.message, 'error');
+        showNotification('Shadowsocks konfigürasyonu gösterilemedi: ' + error.message, 'error');
     }
 }
 
@@ -678,10 +626,10 @@ function setupEventListeners() {
         const button = e.target.closest('.unlock-btn');
         if (button) {
             e.preventDefault();
-            const scriptName = button.getAttribute('data-script');
-            if (scriptName) {
-                console.log(`🔽 Script indirme isteği: ${scriptName}`);
-                downloadScript(scriptName);
+            const scriptId = button.getAttribute('data-script');
+            if (scriptId) {
+                console.log(`🔽 Script indirme isteği: ${scriptId}`);
+                downloadScript(scriptId);
             }
         }
     });
