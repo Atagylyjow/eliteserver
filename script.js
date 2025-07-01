@@ -434,14 +434,22 @@ async function downloadScript(scriptId) {
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         // Create an object URL from the Blob
         const url = URL.createObjectURL(blob);
-        // Create a temporary link to trigger the download
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        // Clean up
-        document.body.removeChild(link);
+        
+        // Check if running in Telegram WebApp (mobile)
+        if (window.Telegram && window.Telegram.WebApp) {
+            // For mobile Telegram WebApp, show content in modal
+            showMobileDownloadModal(filename, content, price);
+        } else {
+            // For desktop browsers, use normal download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            // Clean up
+            document.body.removeChild(link);
+        }
+        
         URL.revokeObjectURL(url);
         showNotification(`✅ '${filename}' başarıyla satın alındı ve indirildi! (${price} coin düşüldü)`, 'success');
     } catch (error) {
@@ -534,6 +542,105 @@ async function showShadowsocksConfig(price, script) {
     } catch (error) {
         showNotification('Shadowsocks konfigürasyonu gösterilemedi: ' + error.message, 'error');
     }
+}
+
+// Show mobile download modal
+function showMobileDownloadModal(filename, content, price) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'block';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90vw; max-height: 80vh;">
+            <div class="modal-header">
+                <h3>📁 ${filename}</h3>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; border-left: 4px solid #28a745;">
+                    <strong>✅ Başarıyla satın alındı!</strong><br>
+                    <small>${price} coin düşüldü. Dosya içeriği aşağıda:</small>
+                </div>
+                <div class="config-display">
+                    <textarea id="mobile-config-textarea" style="width:100%; min-height:200px; background: var(--bg-secondary); padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; border: 1px solid var(--border-color);" readonly>${content}</textarea>
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button id="copy-mobile-config" class="btn btn-primary">
+                            <i class="fas fa-copy"></i> Kopyala
+                        </button>
+                        <button id="share-mobile-config" class="btn btn-secondary">
+                            <i class="fas fa-share"></i> Paylaş
+                        </button>
+                        <button id="save-mobile-config" class="btn btn-success">
+                            <i class="fas fa-save"></i> Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    setTimeout(() => {
+        const copyBtn = document.getElementById('copy-mobile-config');
+        const shareBtn = document.getElementById('share-mobile-config');
+        const saveBtn = document.getElementById('save-mobile-config');
+        const textarea = document.getElementById('mobile-config-textarea');
+        
+        if (copyBtn && textarea) {
+            copyBtn.onclick = function() {
+                textarea.select();
+                document.execCommand('copy');
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> Kopyalandı!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i> Kopyala';
+                }, 1500);
+            };
+        }
+        
+        if (shareBtn && textarea) {
+            shareBtn.onclick = function() {
+                if (navigator.share) {
+                    navigator.share({
+                        title: filename,
+                        text: content,
+                        url: window.location.href
+                    });
+                } else {
+                    // Fallback: copy to clipboard
+                    textarea.select();
+                    document.execCommand('copy');
+                    shareBtn.innerHTML = '<i class="fas fa-check"></i> Kopyalandı!';
+                    setTimeout(() => {
+                        shareBtn.innerHTML = '<i class="fas fa-share"></i> Paylaş';
+                    }, 1500);
+                }
+            };
+        }
+        
+        if (saveBtn && textarea) {
+            saveBtn.onclick = function() {
+                // Try to trigger download on mobile
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                saveBtn.innerHTML = '<i class="fas fa-check"></i> Kaydedildi!';
+                setTimeout(() => {
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Kaydet';
+                }, 1500);
+            };
+        }
+    }, 100);
 }
 
 // Show notification
