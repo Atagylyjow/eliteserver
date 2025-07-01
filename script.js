@@ -571,6 +571,9 @@ function showMobileDownloadModal(filename, content, price) {
                         <button id="share-mobile-config" class="btn btn-secondary">
                             <i class="fas fa-share"></i> Paylaş
                         </button>
+                        <button id="download-mobile-config" class="btn btn-success">
+                            <i class="fas fa-download"></i> İndir
+                        </button>
                     </div>
                     <div style="margin-top: 1rem; padding: 0.75rem; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
                         <strong>💡 Nasıl Kaydedilir?</strong><br>
@@ -591,6 +594,7 @@ function showMobileDownloadModal(filename, content, price) {
     setTimeout(() => {
         const copyBtn = document.getElementById('copy-mobile-config');
         const shareBtn = document.getElementById('share-mobile-config');
+        const downloadBtn = document.getElementById('download-mobile-config');
         const textarea = document.getElementById('mobile-config-textarea');
         
         if (copyBtn && textarea) {
@@ -632,6 +636,70 @@ function showMobileDownloadModal(filename, content, price) {
                 setTimeout(() => {
                     shareBtn.innerHTML = '<i class="fas fa-share"></i> Paylaş';
                 }, 1500);
+            };
+        }
+        
+        if (downloadBtn && textarea) {
+            downloadBtn.onclick = function() {
+                // Mobil için gelişmiş indirme yöntemi
+                try {
+                    // Blob oluştur
+                    const blob = new Blob([content], { 
+                        type: 'text/plain;charset=utf-8' 
+                    });
+                    
+                    // Object URL oluştur
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Link oluştur ve özelliklerini ayarla
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.style.display = 'none';
+                    
+                    // Mobil için ek özellikler
+                    link.setAttribute('download', filename);
+                    link.setAttribute('type', 'text/plain');
+                    
+                    // Link'i sayfaya ekle ve tıkla
+                    document.body.appendChild(link);
+                    
+                    // Mobil tarayıcılar için touch event ekle
+                    const touchEvent = new TouchEvent('touchend', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    
+                    // Hem click hem touch event dene
+                    link.dispatchEvent(touchEvent);
+                    link.click();
+                    
+                    // Temizlik
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }, 1000);
+                    
+                    // Başarı mesajı
+                    downloadBtn.innerHTML = '<i class="fas fa-check"></i> İndirildi!';
+                    setTimeout(() => {
+                        downloadBtn.innerHTML = '<i class="fas fa-download"></i> İndir';
+                    }, 2000);
+                    
+                    // Alternatif yöntem: Yeni sekmede aç
+                    setTimeout(() => {
+                        const newWindow = window.open(url, '_blank');
+                        if (newWindow) {
+                            newWindow.document.title = filename;
+                        }
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('İndirme hatası:', error);
+                    // Hata durumunda alternatif yöntem
+                    showDownloadAlternatives(filename, content);
+                }
             };
         }
         
@@ -693,6 +761,91 @@ function shareToEmail() {
     const subject = encodeURIComponent('VPN Script');
     const body = encodeURIComponent('VPN Script içeriği panoya kopyalandı. Email\'de yapıştırabilirsin.');
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+}
+
+// Show download alternatives modal
+function showDownloadAlternatives(filename, content) {
+    const downloadModal = document.createElement('div');
+    downloadModal.className = 'modal';
+    downloadModal.style.display = 'block';
+    downloadModal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>📥 İndirme Seçenekleri</h3>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <strong>⚠️ Otomatik indirme çalışmadı</strong><br>
+                    <small>Alternatif yöntemlerden birini kullanabilirsin:</small>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button onclick="downloadAsDataURL('${filename}', '${btoa(content)}')" style="padding: 0.75rem; background: #007bff; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-download"></i> Data URL ile İndir
+                    </button>
+                    <button onclick="downloadAsBlobURL('${filename}', '${btoa(content)}')" style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-file-download"></i> Blob URL ile İndir
+                    </button>
+                    <button onclick="openInNewTab('${filename}', '${btoa(content)}')" style="padding: 0.75rem; background: #17a2b8; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-external-link-alt"></i> Yeni Sekmede Aç
+                    </button>
+                    <button onclick="this.closest('.modal').remove()" style="padding: 0.75rem; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <i class="fas fa-times"></i> Kapat
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(downloadModal);
+}
+
+// Alternative download functions
+function downloadAsDataURL(filename, base64Content) {
+    try {
+        const content = atob(base64Content);
+        const dataURL = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+        const link = document.createElement('a');
+        link.href = dataURL;
+        link.download = filename;
+        link.click();
+    } catch (error) {
+        console.error('Data URL indirme hatası:', error);
+        showNotification('İndirme başarısız oldu', 'error');
+    }
+}
+
+function downloadAsBlobURL(filename, base64Content) {
+    try {
+        const content = atob(base64Content);
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Blob URL indirme hatası:', error);
+        showNotification('İndirme başarısız oldu', 'error');
+    }
+}
+
+function openInNewTab(filename, base64Content) {
+    try {
+        const content = atob(base64Content);
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const newWindow = window.open(url, '_blank');
+        if (newWindow) {
+            newWindow.document.title = filename;
+        }
+    } catch (error) {
+        console.error('Yeni sekme açma hatası:', error);
+        showNotification('Yeni sekme açılamadı', 'error');
+    }
 }
 
 // Show notification
