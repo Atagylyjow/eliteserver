@@ -126,7 +126,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Bot token'ınızı buraya yazın
-const token = '7762459827:AAFFQRGpSphgUqw2MHhMngCMQeBHZLHrHCo';
+const token = '7762459827:AAFdwhXyMA34GEB-khfqJb_3OJCvaQwYUdM';
 
 // Bot oluştur
 const bot = new TelegramBot(token, { polling: true });
@@ -544,65 +544,51 @@ app.post('/api/admin/scripts/update', upload.single('file'), (req, res) => {
     }
 });
 
-app.post('/api/admin/toggle-script', (req, res) => {
+app.post('/api/admin/toggle-script', async (req, res) => {
     const { adminId, scriptId } = req.body;
-    
     debug('Admin toggle script API called', { adminId, scriptId, ip: req.ip });
-    
-    if (!isAdmin(adminId)) {
+    if (!await isAdmin(adminId)) {
         log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
         return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
     }
-    
-    if (database.vpnScripts[scriptId]) {
-        const oldStatus = database.vpnScripts[scriptId].enabled;
-        database.vpnScripts[scriptId].enabled = !database.vpnScripts[scriptId].enabled;
-        const newStatus = database.vpnScripts[scriptId].enabled;
-        
-        writeDatabase(); // Değişiklikleri kaydet
-        
-        log('info', 'Script toggled by admin', { 
-            adminId, 
-            scriptId, 
-            oldStatus, 
-            newStatus 
-        });
-        
-        res.json({ 
-            success: true, 
-            message: `Script ${newStatus ? 'etkinleştirildi' : 'devre dışı bırakıldı'}` 
-        });
-    } else {
-        log('warn', 'Script toggle failed - not found', { adminId, scriptId });
-        res.status(404).json({ success: false, error: 'Script bulunamadı' });
+    try {
+        const script = await db.collection('vpnScripts').findOne({ _id: new ObjectId(scriptId) });
+        if (script) {
+            const oldStatus = script.enabled;
+            const newStatus = !oldStatus;
+            await db.collection('vpnScripts').updateOne({ _id: new ObjectId(scriptId) }, { $set: { enabled: newStatus } });
+            log('info', 'Script toggled by admin', { adminId, scriptId, oldStatus, newStatus });
+            res.json({ success: true, message: `Script ${newStatus ? 'etkinleştirildi' : 'devre dışı bırakıldı'}` });
+        } else {
+            log('warn', 'Script toggle failed - not found', { adminId, scriptId });
+            res.status(404).json({ success: false, error: 'Script bulunamadı' });
+        }
+    } catch (error) {
+        log('error', 'Script toggle error', { error: error.message });
+        res.status(500).json({ success: false, error: 'Sunucu hatası: Script güncellenemedi' });
     }
 });
 
-app.post('/api/admin/delete-script', (req, res) => {
+app.post('/api/admin/delete-script', async (req, res) => {
     const { adminId, scriptId } = req.body;
-    
     debug('Admin delete script API called', { adminId, scriptId, ip: req.ip });
-    
-    if (!isAdmin(adminId)) {
+    if (!await isAdmin(adminId)) {
         log('warn', 'Unauthorized admin access attempt', { adminId, ip: req.ip });
         return res.status(403).json({ success: false, error: 'Yönetici izni gerekli' });
     }
-    
-    if (database.vpnScripts[scriptId]) {
-        const scriptName = database.vpnScripts[scriptId].name;
-        delete database.vpnScripts[scriptId];
-        
-        writeDatabase(); // Değişiklikleri kaydet
-        
-        log('info', 'Script deleted by admin', { adminId, scriptId, scriptName });
-        
-        res.json({ 
-            success: true, 
-            message: `Script "${scriptName}" başarıyla silindi` 
-        });
-    } else {
-        log('warn', 'Script delete failed - not found', { adminId, scriptId });
-        res.status(404).json({ success: false, error: 'Script bulunamadı' });
+    try {
+        const script = await db.collection('vpnScripts').findOne({ _id: new ObjectId(scriptId) });
+        if (script) {
+            await db.collection('vpnScripts').deleteOne({ _id: new ObjectId(scriptId) });
+            log('info', 'Script deleted by admin', { adminId, scriptId, scriptName: script.name });
+            res.json({ success: true, message: `Script "${script.name}" başarıyla silindi` });
+        } else {
+            log('warn', 'Script delete failed - not found', { adminId, scriptId });
+            res.status(404).json({ success: false, error: 'Script bulunamadı' });
+        }
+    } catch (error) {
+        log('error', 'Script delete error', { error: error.message });
+        res.status(500).json({ success: false, error: 'Sunucu hatası: Script silinemedi' });
     }
 });
 
