@@ -1,0 +1,13 @@
+[
+  {
+    "_id": "main",
+    "totalDownloads": 25,
+    "activeUsers": 2,
+    "darktunnelDownloads": 6,
+    "httpcustomDownloads": 12,
+    "npvtunnelDownloads": 7,
+    "shadowsocksDownloads": 0,
+    "lastUpdated": "2025-06-30T00:10:14.631Z",
+    "totalUsers": 2
+  }
+]

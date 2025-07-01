@@ -1,0 +1,11 @@
+{
+  "backupDate": "2025-07-01T23:18:10.734Z",
+  "source": "db.json",
+  "collections": {
+    "users": 2,
+    "vpnScripts": 4,
+    "stats": 1,
+    "admins": 1
+  },
+  "totalDocuments": 8
+}

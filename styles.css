@@ -753,4 +753,18 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
+}
+
+.lang-select {
+    display: flex;
+    align-items: center;
+    margin-left: 1rem;
+}
+#language-select {
+    padding: 0.3rem 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 } 
