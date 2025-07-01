@@ -171,7 +171,6 @@ function editScript(scriptId) {
     document.getElementById('edit-script-name').value = script.name;
     document.getElementById('edit-script-description').value = script.description;
     document.getElementById('edit-script-filename').value = script.filename;
-    document.getElementById('edit-script-content').value = script.content || '';
     
     // Düzenleme bölümünü göster
     document.getElementById('edit-script-section').style.display = 'block';
@@ -188,7 +187,6 @@ document.getElementById('edit-script-form').addEventListener('submit', async fun
     const name = document.getElementById('edit-script-name').value;
     const description = document.getElementById('edit-script-description').value;
     const filename = document.getElementById('edit-script-filename').value;
-    const content = document.getElementById('edit-script-content').value;
     const uploadFile = document.getElementById('edit-upload-file').files[0];
     
     try {
@@ -197,7 +195,6 @@ document.getElementById('edit-script-form').addEventListener('submit', async fun
         formData.append('name', name);
         formData.append('description', description);
         formData.append('filename', filename);
-        formData.append('content', content);
         formData.append('adminId', ADMIN_ID);
         
         // Eğer yeni dosya yüklendiyse, dosyayı da ekle

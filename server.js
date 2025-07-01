@@ -295,14 +295,15 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
 });
 
 // Kullanıcı coin'lerini getir
-app.get('/api/user/:userId/coins', (req, res) => {
+app.get('/api/user/:userId/coins', async (req, res) => {
     const { userId } = req.params;
-    
     debug('Get user coins API called', { userId, ip: req.ip });
-    
-    const userData = getUserData(userId);
-    
-    res.json({ success: true, coins: userData.coins || 0 });
+    try {
+        const user = await db.collection('users').findOne({ _id: userId });
+        res.json({ success: true, coins: user?.coins || 0 });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Coin sorgulanamadı' });
+    }
 });
 
 // Kullanıcıya coin ekle (genel)
@@ -337,64 +338,51 @@ app.post('/api/user/add-coins', async (req, res) => {
 });
 
 // Kullanıcıdan coin çıkar
-app.post('/api/user/:userId/deduct-coins', (req, res) => {
+app.post('/api/user/:userId/deduct-coins', async (req, res) => {
     const { userId } = req.params;
     const { amount } = req.body;
-    
     debug('Deduct coins API called', { userId, amount, ip: req.ip });
-    
     if (!amount || amount <= 0) {
         return res.status(400).json({ success: false, error: 'Geçerli coin miktarı gerekli' });
     }
-    
-    const userData = getUserData(userId);
-    const currentCoins = userData.coins || 0;
-    
-    if (currentCoins < amount) {
-        return res.status(400).json({ success: false, error: 'Yetersiz coin' });
+    try {
+        const user = await db.collection('users').findOne({ _id: userId });
+        const currentCoins = user?.coins || 0;
+        if (currentCoins < amount) {
+            return res.status(400).json({ success: false, error: 'Yetersiz coin' });
+        }
+        await db.collection('users').updateOne({ _id: userId }, { $inc: { coins: -amount } });
+        const updatedUser = await db.collection('users').findOne({ _id: userId });
+        log('info', 'Coins deducted from user', { userId, amount, remaining: updatedUser.coins });
+        res.json({ success: true, coins: updatedUser.coins });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Coin düşülürken hata oluştu' });
     }
-    
-    userData.coins = currentCoins - amount;
-    
-    // Veritabanını kaydet
-    writeDatabase();
-    
-    log('info', 'Coins deducted from user', { userId, amount, remaining: userData.coins });
-    res.json({ success: true, coins: userData.coins });
 });
 
 // Kullanıcı coin kullan (satın alma için)
-app.post('/api/user/:userId/use-coins', (req, res) => {
+app.post('/api/user/:userId/use-coins', async (req, res) => {
     const { userId } = req.params;
     const { amount } = req.body;
-    
     debug('Use coins API called', { userId, amount, ip: req.ip });
-    
     if (!amount || amount <= 0) {
         return res.status(400).json({ success: false, error: 'Geçerli coin miktarı gerekli' });
     }
-    
-    const userData = getUserData(userId);
-    
-    if (!userData.coins) {
-        return res.status(400).json({ success: false, error: 'Coin bulunamadı' });
+    try {
+        const user = await db.collection('users').findOne({ _id: userId });
+        if (!user?.coins) {
+            return res.status(400).json({ success: false, error: 'Coin bulunamadı' });
+        }
+        if (user.coins < amount) {
+            return res.status(400).json({ success: false, error: 'Yetersiz coin' });
+        }
+        await db.collection('users').updateOne({ _id: userId }, { $inc: { coins: -amount } });
+        const updatedUser = await db.collection('users').findOne({ _id: userId });
+        log('info', 'Coins used by user', { userId, amount, remaining: updatedUser.coins });
+        res.json({ success: true, coins: updatedUser.coins });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Coin kullanılırken hata oluştu' });
     }
-    
-    if (userData.coins < amount) {
-        return res.status(400).json({ success: false, error: 'Yetersiz coin' });
-    }
-    
-    userData.coins -= amount;
-    
-    // Veritabanını kaydet
-    writeDatabase();
-    
-    log('info', 'Coins used by user', { userId, amount, remaining: userData.coins });
-    
-    res.json({
-        success: true,
-        coins: userData.coins
-    });
 });
 
 // Yönetici API'leri
