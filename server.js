@@ -488,58 +488,40 @@ app.post('/api/admin/upload-script', upload.single('scriptFile'), (req, res) => 
     }
 });
 
-app.post('/api/admin/scripts/update', upload.single('file'), (req, res) => {
+app.post('/api/admin/scripts/update', adminAuth, async (req, res) => {
     try {
+        // Multer ile dosya yüklemesi varsa req.file üzerinden alınır
         const { id, name, description, filename } = req.body;
-        
         if (!id || !name || !description || !filename) {
             return res.status(400).json({ error: 'Tüm alanlar gerekli' });
         }
-        
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({ error: 'Geçersiz Script ID' });
+        }
         // Script'i bul
-        if (!database.vpnScripts[id]) {
+        const script = await db.collection('vpnScripts').findOne({ _id: new ObjectId(id) });
+        if (!script) {
             return res.status(404).json({ error: 'Script bulunamadı' });
         }
-        
-        const script = database.vpnScripts[id];
-        
-        // Eğer yeni dosya yüklendiyse
+        let updateData = {
+            name,
+            description,
+            filename
+        };
+        // Eğer yeni dosya yüklendiyse, içeriği güncelle
         if (req.file) {
-            // Eski dosyayı sil (eğer varsa)
-            if (script.filename && script.filename !== req.file.originalname) {
-                const oldFilePath = path.join(__dirname, 'uploads', script.filename);
-                if (fs.existsSync(oldFilePath)) {
-                    fs.unlinkSync(oldFilePath);
-                }
-            }
-            
-            // Yeni dosya içeriğini oku
             const newContent = fs.readFileSync(req.file.path, 'utf8');
-            
-            // Script'i güncelle
-            database.vpnScripts[id] = {
-                ...script,
-                name,
-                description,
-                filename: req.file.originalname,
-                content: newContent
-            };
-        } else {
-            // Sadece metin alanlarını güncelle
-            database.vpnScripts[id] = {
-                ...script,
-                name,
-                description,
-                filename
-            };
+            updateData.content = newContent;
         }
-        
-        // Veritabanını kaydet
-        writeDatabase();
-        
+        // Script'i güncelle
+        await db.collection('vpnScripts').updateOne(
+            { _id: new ObjectId(id) },
+            { $set: updateData }
+        );
+        log('info', 'Script updated by admin', { scriptId: id });
         res.json({ success: true, message: 'Script başarıyla güncellendi' });
     } catch (error) {
-        console.error('Script güncelleme hatası:', error);
+        log('error', 'Script update error', { error: error.message });
         res.status(500).json({ error: 'Script güncellenemedi' });
     }
 });
