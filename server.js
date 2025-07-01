@@ -125,8 +125,8 @@ function errorHandler(err, req, res, next) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Bot token'ınızı buraya yazın
 // const token = '7762459827:AAFdwhXyMA34GEB-khfqJb_3OJCvaQwYUdM';
+const token = '';
 
 // Bot oluşturmayı ve event handler'ları devre dışı bırak
 // const bot = new TelegramBot(token, { polling: true });
@@ -507,6 +507,8 @@ app.post('/api/admin/scripts/update', adminAuth, async (req, res) => {
         if (req.file) {
             const newContent = fs.readFileSync(req.file.path, 'utf8');
             updateData.content = newContent;
+        } else if (req.body.content) {
+            updateData.content = req.body.content;
         }
         // Script'i güncelle
         await db.collection('vpnScripts').updateOne(
