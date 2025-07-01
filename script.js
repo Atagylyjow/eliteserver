@@ -1,5 +1,5 @@
 // Backend API URL'si - Kalıcı sunucu adresi
-const API_BASE_URL = 'https://tg-web-app-1.onrender.com/api';
+const API_BASE_URL = 'https://tg-web-app-fg41.onrender.com/api';
 
 console.log('🌐 API Base URL:', API_BASE_URL);
 console.log('📍 Current hostname:', window.location.hostname);

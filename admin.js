@@ -1,5 +1,5 @@
 // Backend API URL'si - Sunucunun çalıştığı Glitch adresi
-const API_BASE_URL = 'https://tg-web-app-1.onrender.com/api';
+const API_BASE_URL = 'https://tg-web-app-fg41.onrender.com/api';
 
 // Admin ID (kendi chat ID'nizi buraya yazın)
 const ADMIN_ID = 7749779502; // Buraya kendi chat ID'nizi yazın
