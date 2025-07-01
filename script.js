@@ -397,7 +397,7 @@ async function downloadScript(scriptId) {
         const script = scripts[scriptId];
         if (script && script.name && script.name.toLowerCase().includes('shadowsocks')) {
             await showShadowsocksConfig(price, script);
-            return;
+            return; // İndirme işlemi yapılmasın
         }
         // Deduct coins first
         await deductCoins(price);
@@ -761,7 +761,6 @@ if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
 // Initialize In-App Interstitial Ads
 function initializeInAppInterstitial() {
     console.log('🎬 In-App Interstitial reklamları başlatılıyor...');
-    
     // Check if Monetag SDK is loaded
     if (typeof window.show_9499819 !== 'function') {
         console.warn('⚠️ Monetag SDK henüz yüklenmedi, In-App Interstitial erteleniyor...');
@@ -769,32 +768,29 @@ function initializeInAppInterstitial() {
         setTimeout(initializeInAppInterstitial, 2000);
         return;
     }
-    
     try {
         // Get user ID for tracking
         const ymid = getUserId();
-        
         // Initialize In-App Interstitial with our settings
-        window.show_9499819({
-            type: 'inApp',
-            ymid: ymid,
-            inAppSettings: {
-                frequency: 10,        // Maximum 10 ads per session
-                capping: 0.5,         // Session duration: 30 minutes (0.5 hours)
-                interval: 180,        // 3 minutes (180 seconds) between ads
-                timeout: 10,          // 10 seconds delay before first ad
-                everyPage: false      // Session continues across page reloads
-            }
-        });
-        
-        console.log('✅ In-App Interstitial başarıyla başlatıldı');
-        console.log('📊 Reklam ayarları:', {
-            frequency: 10,
-            capping: '30 dakika',
-            interval: '3 dakika',
-            timeout: '10 saniye'
-        });
-        
+        setTimeout(() => {
+            window.show_9499819({
+                type: 'inApp',
+                ymid: ymid,
+                inAppSettings: {
+                    frequency: 10,        // Maximum 10 ads per session
+                    capping: 0.5,         // Session duration: 30 minutes (0.5 hours)
+                    interval: 180,        // 3 minutes (180 seconds) between ads
+                    timeout: 0            // 0 means ad can show immediately after this delay
+                }
+            });
+            console.log('✅ In-App Interstitial başarıyla başlatıldı');
+            console.log('📊 Reklam ayarları:', {
+                frequency: 10,
+                capping: '30 dakika',
+                interval: '3 dakika',
+                timeout: '0 saniye (ilk reklam için 5sn beklemede)'
+            });
+        }, 5000); // Web açıldıktan 5 saniye sonra başlasın
     } catch (error) {
         console.error('❌ In-App Interstitial başlatılırken hata:', error);
     }
