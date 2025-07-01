@@ -796,4 +796,106 @@ function initializeInAppInterstitial() {
     }
 }
 
-console.log('VPN Script Hub loaded successfully!'); 
+console.log('VPN Script Hub loaded successfully!');
+
+// Dil çeviri objesi
+const translations = {
+    tm: {
+        appTitle: 'Elite Servers Web APP',
+        appDesc: 'Howpsuz we çalt VPN scriptlerini alyň',
+        scriptsTitle: 'VPN Scriptleri',
+        buy: 'Satyn Al',
+        see: 'Gör',
+        price: 'Coin',
+        howTo: 'Näme üçin ulanmaly?',
+        step1: 'Script saýlaň',
+        step1desc: 'Islän VPN scriptiňizi saýlaň',
+        step2: 'Göçürip alyň',
+        step2desc: 'Script faýlyny enjamyňyza göçürip alyň',
+        coinEarn: 'Reklam görüp coin gazan',
+        watchAd: 'Reklam Gör',
+        notEnoughCoin: '❌ Ýeterlik coin ýok! ',
+        bought: 'Satyn alyndy we göçürildi!',
+        error: 'Ýalňyşlyk ýüze çykdy',
+        // ... diğer metinler ...
+    },
+    ru: {
+        appTitle: 'Elite Servers Web APP',
+        appDesc: 'Получайте безопасные и быстрые VPN скрипты',
+        scriptsTitle: 'VPN Скрипты',
+        buy: 'Купить',
+        see: 'Посмотреть',
+        price: 'Монет',
+        howTo: 'Как использовать?',
+        step1: 'Выберите скрипт',
+        step1desc: 'Выберите нужный VPN скрипт',
+        step2: 'Скачайте',
+        step2desc: 'Скачайте файл скрипта на устройство',
+        coinEarn: 'Смотрите рекламу и зарабатывайте монеты',
+        watchAd: 'Смотреть рекламу',
+        notEnoughCoin: '❌ Недостаточно монет! ',
+        bought: 'Успешно куплено и скачано!',
+        error: 'Произошла ошибка',
+        // ... diğer metinler ...
+    }
+};
+
+// Aktif dil
+let currentLang = localStorage.getItem('lang') || 'tm';
+
+function setLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+    const t = translations[lang];
+    // Başlık ve açıklama
+    document.querySelector('.welcome-card h1').textContent = t.appTitle;
+    document.querySelector('.welcome-card p').textContent = t.appDesc;
+    // Scriptler başlığı
+    document.querySelector('.scripts-section h2').textContent = t.scriptsTitle;
+    // Script kartlarındaki butonlar ve fiyatlar
+    document.querySelectorAll('.script-card').forEach(card => {
+        const btn = card.querySelector('.unlock-btn');
+        if (btn) {
+            if (btn.classList.contains('btn-secondary')) {
+                btn.innerHTML = `<i class="fas fa-eye"></i> ${t.see}`;
+            } else {
+                btn.innerHTML = `<i class="fas fa-shopping-cart"></i> ${t.buy}`;
+            }
+        }
+        const price = card.querySelector('.script-price span');
+        if (price) price.textContent = `5 ${t.price}`;
+    });
+    // Nasıl Kullanılır başlığı
+    document.querySelector('.instructions-section h2').textContent = t.howTo;
+    // Adımlar
+    const steps = document.querySelectorAll('.instruction-step');
+    if (steps[0]) {
+        steps[0].querySelector('h3').textContent = t.step1;
+        steps[0].querySelector('p').textContent = t.step1desc;
+    }
+    if (steps[1]) {
+        steps[1].querySelector('h3').textContent = t.step2;
+        steps[1].querySelector('p').textContent = t.step2desc;
+    }
+    // Coin modal
+    const coinModal = document.getElementById('coin-modal');
+    if (coinModal) {
+        coinModal.querySelector('h3').textContent = t.coinEarn;
+        const watchBtn = document.getElementById('watch-ad-btn');
+        if (watchBtn) watchBtn.innerHTML = `<i class="fas fa-play"></i> ${t.watchAd}`;
+    }
+}
+
+// Dil seçici event
+const langSelect = document.getElementById('language-select');
+if (langSelect) {
+    langSelect.value = currentLang;
+    langSelect.addEventListener('change', function() {
+        setLanguage(this.value);
+    });
+}
+
+// Sayfa açıldığında dili uygula
+window.addEventListener('DOMContentLoaded', () => {
+    setLanguage(currentLang);
+}); 
