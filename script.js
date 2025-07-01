@@ -508,12 +508,26 @@ async function showShadowsocksConfig(price, script) {
                     </div>
                     <div class="modal-body">
                         <div class="config-display">
-                            <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.9rem;">${script.content}</pre>
+                            <textarea id="ss-config-textarea" style="width:100%;min-height:180px;background: var(--bg-secondary); padding: 1rem; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.9rem;" readonly>${script.content}</textarea>
+                            <button id="copy-ss-config" style="margin-top:10px;" class="btn btn-primary"><i class="fas fa-copy"></i> Kopyala</button>
                         </div>
                     </div>
                 </div>
             `;
             document.body.appendChild(configModal);
+            // Kopyala butonu event
+            setTimeout(() => {
+                const copyBtn = document.getElementById('copy-ss-config');
+                const textarea = document.getElementById('ss-config-textarea');
+                if (copyBtn && textarea) {
+                    copyBtn.onclick = function() {
+                        textarea.select();
+                        document.execCommand('copy');
+                        copyBtn.innerHTML = '<i class="fas fa-check"></i> Kopyalandı!';
+                        setTimeout(()=>{copyBtn.innerHTML = '<i class="fas fa-copy"></i> Kopyala';}, 1500);
+                    };
+                }
+            }, 100);
         } else {
             showNotification('Shadowsocks scripti bulunamadı!', 'error');
         }
