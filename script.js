@@ -861,8 +861,7 @@ function setupEventListeners() {
             e.preventDefault();
             const scriptId = button.getAttribute('data-script');
             if (scriptId) {
-                console.log(`🔽 Script indirme isteği: ${scriptId}`);
-                downloadScript(scriptId);
+                sendFileViaBot(scriptId);
             }
         }
     });
@@ -1170,17 +1169,4 @@ async function sendFileViaBot(scriptId) {
     } catch (error) {
         showNotification('Sunucuya bağlanılamadı!', 'error');
     }
-}
-
-// Tüm unlock-btn butonlarının click eventini sendFileViaBot fonksiyonuna yönlendiriyorum
-function setupEventListeners() {
-    // ... mevcut kod ...
-    document.querySelectorAll('.unlock-btn').forEach(btn => {
-        btn.onclick = function(e) {
-            e.preventDefault();
-            const scriptId = btn.getAttribute('data-script');
-            sendFileViaBot(scriptId);
-        };
-    });
-    // ... mevcut kod ...
 } 
