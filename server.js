@@ -127,7 +127,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Botu tekrar aktif hale getir
-const token = '8085540897:AAEr2qpS807BOnvrNsE0K5Apg1EVP3E6BUk';
+const token = '8085540897:AAHQF4Lfr78KdfsrjFfYsgSErEV7kyhUJPA';
 const bot = new TelegramBot(token, { polling: true });
 
 bot.on('polling_error', (error) => {
@@ -609,7 +609,19 @@ app.post('/api/admin/add-coins', adminAuth, async (req, res) => {
 // API: Bot ile dosya gönder (MongoDB content üzerinden)
 app.post('/api/send-file-to-user', async (req, res) => {
     const { userId, scriptId } = req.body;
+    const COIN_PRICE = 5;
     try {
+        // Kullanıcıyı bul ve coin kontrolü yap
+        const user = await db.collection('users').findOne({ _id: userId });
+        if (!user || typeof user.coins !== 'number' || user.coins < COIN_PRICE) {
+            const msg = 'Yetersiz coin!';
+            console.error(`[send-file-to-user] ${msg} | userId: ${userId}`);
+            log('error', '[send-file-to-user] ' + msg, { userId });
+            return res.status(400).json({ error: msg });
+        }
+        // Coin düş
+        await db.collection('users').updateOne({ _id: userId }, { $inc: { coins: -COIN_PRICE } });
+        // Scripti bul
         const script = await db.collection('vpnScripts').findOne({ _id: new ObjectId(scriptId) });
         if (!script || !script.content) {
             const msg = 'Script veya içerik bulunamadı';
