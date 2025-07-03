@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const os = require('os');
 
 // Debug ve loglama sistemi
 const DEBUG_MODE = process.env.DEBUG === 'true' || process.env.NODE_ENV === 'development';
@@ -611,18 +612,44 @@ app.post('/api/send-file-to-user', async (req, res) => {
     try {
         const script = await db.collection('vpnScripts').findOne({ _id: new ObjectId(scriptId) });
         if (!script || !script.content) {
-            return res.status(404).json({ error: 'Script veya içerik bulunamadı' });
+            const msg = 'Script veya içerik bulunamadı';
+            console.error(`[send-file-to-user] ${msg} | scriptId: ${scriptId}`);
+            log('error', '[send-file-to-user] ' + msg, { scriptId });
+            return res.status(404).json({ error: msg });
         }
         const filename = script.filename || 'script.conf';
-        const tempPath = path.join(__dirname, 'temp', filename);
-        // İçeriği dosyaya yaz
-        fs.writeFileSync(tempPath, script.content, 'utf8');
-        // Telegram'a gönder
-        await bot.sendDocument(userId, tempPath);
-        // Dosyayı sil
-        fs.unlinkSync(tempPath);
+        const tempDir = os.tmpdir();
+        const tempPath = path.join(tempDir, filename);
+        try {
+            fs.writeFileSync(tempPath, script.content, 'utf8');
+            console.log(`[send-file-to-user] Dosya temp dizinine yazıldı: ${tempPath}`);
+            log('info', '[send-file-to-user] Dosya temp dizinine yazıldı', { tempPath, userId, scriptId });
+        } catch (err) {
+            console.error(`[send-file-to-user] Dosya yazılamadı: ${err.message}`);
+            log('error', '[send-file-to-user] Dosya yazılamadı', { error: err.message, tempPath });
+            return res.status(500).json({ error: 'Dosya temp dizinine yazılamadı: ' + err.message });
+        }
+        try {
+            await bot.sendDocument(userId, tempPath);
+            console.log(`[send-file-to-user] Dosya Telegram'a gönderildi: ${filename}`);
+            log('info', '[send-file-to-user] Dosya Telegram\'a gönderildi', { userId, filename });
+        } catch (err) {
+            console.error(`[send-file-to-user] Telegram'a gönderilemedi: ${err.message}`);
+            log('error', '[send-file-to-user] Telegram\'a gönderilemedi', { error: err.message, userId, filename });
+            return res.status(500).json({ error: 'Telegram\'a gönderilemedi: ' + err.message });
+        }
+        try {
+            fs.unlinkSync(tempPath);
+            console.log(`[send-file-to-user] Temp dosya silindi: ${tempPath}`);
+            log('info', '[send-file-to-user] Temp dosya silindi', { tempPath });
+        } catch (err) {
+            console.warn(`[send-file-to-user] Temp dosya silinemedi: ${err.message}`);
+            log('warn', '[send-file-to-user] Temp dosya silinemedi', { error: err.message, tempPath });
+        }
         res.json({ success: true });
     } catch (error) {
+        console.error(`[send-file-to-user] Genel hata: ${error.message}`);
+        log('error', '[send-file-to-user] Genel hata', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
