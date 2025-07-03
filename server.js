@@ -605,19 +605,22 @@ app.post('/api/admin/add-coins', adminAuth, async (req, res) => {
     }
 });
 
-// API: Bot ile dosya gönder
+// API: Bot ile dosya gönder (MongoDB content üzerinden)
 app.post('/api/send-file-to-user', async (req, res) => {
     const { userId, scriptId } = req.body;
     try {
-        // scriptId ile dosya yolunu bul
         const script = await db.collection('vpnScripts').findOne({ _id: new ObjectId(scriptId) });
-        if (!script || !script.filePath) {
-            return res.status(404).json({ error: 'Script veya dosya bulunamadı' });
+        if (!script || !script.content) {
+            return res.status(404).json({ error: 'Script veya içerik bulunamadı' });
         }
-        // Dosya yolunu al
-        const filePath = script.filePath;
-        // Bot ile dosyayı gönder
-        await bot.sendDocument(userId, filePath);
+        const filename = script.filename || 'script.conf';
+        const tempPath = path.join(__dirname, 'temp', filename);
+        // İçeriği dosyaya yaz
+        fs.writeFileSync(tempPath, script.content, 'utf8');
+        // Telegram'a gönder
+        await bot.sendDocument(userId, tempPath);
+        // Dosyayı sil
+        fs.unlinkSync(tempPath);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
