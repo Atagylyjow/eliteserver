@@ -126,7 +126,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Botu tekrar aktif hale getir
-const token = '7762459827:AAEUKJKf8hCl7Jnva461RDd69jkHP5yt4jc';
+const token = '8085540897:AAGaBQylu-5wC9hNkCDA3AzP88Cpb54dSz4';
 const bot = new TelegramBot(token, { polling: true });
 
 bot.on('polling_error', (error) => {
