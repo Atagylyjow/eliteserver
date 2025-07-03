@@ -1160,8 +1160,12 @@ async function sendFileViaBot(scriptId) {
         });
         if (response.ok) {
             showNotification('Dosya Telegram üzerinden gönderildi!', 'success');
+            // Anlık coin güncelle
+            userCoins = Math.max(0, userCoins - 5);
+            updateCoinDisplay();
         } else {
-            showNotification('Dosya gönderilemedi!', 'error');
+            const data = await response.json();
+            showNotification('Dosya gönderilemedi! ' + (data.error || ''), 'error');
         }
     } catch (error) {
         showNotification('Sunucuya bağlanılamadı!', 'error');
