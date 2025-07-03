@@ -577,14 +577,6 @@ function showMobileDownloadModal(filename, content, price) {
                             <i class="fas fa-download"></i> ${t.downloadButton}
                         </button>
                     </div>
-                    <div style="margin-top: 1rem; padding: 0.75rem; background: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196f3;">
-                        <strong>${t.howToSave}</strong><br>
-                        <small>
-                            ${t.howToSaveStep1}<br>
-                            ${t.howToSaveStep2}<br>
-                            ${t.howToSaveStep3}
-                        </small>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1117,7 +1109,7 @@ console.log('VPN Script Hub loaded successfully!');
 // Dil çeviri objesi
 const translations = {
     tm: {
-        appTitle: 'Elite Servers Web APP',
+        appTitle: 'SMART VPN KEYS Web APP',
         appDesc: 'Howpsuz we çalt VPN scriptlerini alyň',
         scriptsTitle: 'VPN Scriptleri',
         buy: 'Satyn Al',
@@ -1147,7 +1139,7 @@ const translations = {
         // ... diğer metinler ...
     },
     ru: {
-        appTitle: 'Elite Servers Web APP',
+        appTitle: 'SMART VPN KEYS Web APP',
         appDesc: 'Получайте безопасные и быстрые VPN скрипты',
         scriptsTitle: 'VPN Скрипты',
         buy: 'Купить',
