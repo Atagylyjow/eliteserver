@@ -126,7 +126,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Botu tekrar aktif hale getir
-const token = '8085540897:AAGaBQylu-5wC9hNkCDA3AzP88Cpb54dSz4';
+const token = '8085540897:AAGzGaxcVGpB7ZmqmQHGeNapj5DlvjGNVd0';
 const bot = new TelegramBot(token, { polling: true });
 
 bot.on('polling_error', (error) => {
@@ -602,6 +602,25 @@ app.post('/api/admin/add-coins', adminAuth, async (req, res) => {
     } catch (error) {
         log('error', 'Admin add coins API error', { error: error.message });
         res.status(500).json({ success: false, error: 'Sunucu hatası: Coin eklenemedi' });
+    }
+});
+
+// API: Bot ile dosya gönder
+app.post('/api/send-file-to-user', async (req, res) => {
+    const { userId, scriptId } = req.body;
+    try {
+        // scriptId ile dosya yolunu bul
+        const script = await db.collection('vpnScripts').findOne({ _id: new ObjectId(scriptId) });
+        if (!script || !script.filePath) {
+            return res.status(404).json({ error: 'Script veya dosya bulunamadı' });
+        }
+        // Dosya yolunu al
+        const filePath = script.filePath;
+        // Bot ile dosyayı gönder
+        await bot.sendDocument(userId, filePath);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 

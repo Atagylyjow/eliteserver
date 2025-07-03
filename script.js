@@ -570,9 +570,6 @@ function showMobileDownloadModal(filename, content, price) {
                         <button id="copy-mobile-config" class="btn btn-primary">
                             <i class="fas fa-copy"></i> ${t.copyButton}
                         </button>
-                        <button id="share-mobile-config" class="btn btn-secondary">
-                            <i class="fas fa-share"></i> ${t.shareButton}
-                        </button>
                         <button id="download-mobile-config" class="btn btn-success">
                             <i class="fas fa-download"></i> ${t.downloadButton}
                         </button>
@@ -587,7 +584,6 @@ function showMobileDownloadModal(filename, content, price) {
     // Event listeners
     setTimeout(() => {
         const copyBtn = document.getElementById('copy-mobile-config');
-        const shareBtn = document.getElementById('share-mobile-config');
         const downloadBtn = document.getElementById('download-mobile-config');
         const textarea = document.getElementById('mobile-config-textarea');
         
@@ -598,37 +594,6 @@ function showMobileDownloadModal(filename, content, price) {
                 copyBtn.innerHTML = '<i class="fas fa-check"></i> Kopyalandı!';
                 setTimeout(() => {
                     copyBtn.innerHTML = '<i class="fas fa-copy"></i> Kopyala';
-                }, 1500);
-            };
-        }
-        
-        if (shareBtn && textarea) {
-            shareBtn.onclick = function() {
-                // Önce panoya kopyala
-                textarea.select();
-                document.execCommand('copy');
-                
-                // Share API'yi dene
-                if (navigator.share && navigator.canShare) {
-                    try {
-                        navigator.share({
-                            title: filename,
-                            text: content.substring(0, 100) + '...', // İlk 100 karakter
-                            url: window.location.href
-                        }).catch(() => {
-                            // Share başarısız olursa sadece kopyalandı mesajı göster
-                            showShareOptions();
-                        });
-                    } catch (error) {
-                        showShareOptions();
-                    }
-                } else {
-                    showShareOptions();
-                }
-                
-                shareBtn.innerHTML = '<i class="fas fa-check"></i> Kopyalandı!';
-                setTimeout(() => {
-                    shareBtn.innerHTML = '<i class="fas fa-share"></i> Paylaş';
                 }, 1500);
             };
         }
@@ -699,62 +664,6 @@ function showMobileDownloadModal(filename, content, price) {
         
 
     }, 100);
-}
-
-// Show share options modal
-function showShareOptions() {
-    const shareModal = document.createElement('div');
-    shareModal.className = 'modal';
-    shareModal.style.display = 'block';
-    shareModal.innerHTML = `
-        <div class="modal-content" style="max-width: 400px;">
-            <div class="modal-header">
-                <h3>📤 Paylaşım Seçenekleri</h3>
-                <button class="modal-close" onclick="this.closest('.modal').remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div style="margin-bottom: 1rem;">
-                    <p><strong>✅ İçerik panoya kopyalandı!</strong></p>
-                    <p>Şimdi şu seçeneklerden birini kullanabilirsin:</p>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <button onclick="shareToTelegram()" style="padding: 0.75rem; background: #0088cc; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fab fa-telegram"></i> Telegram'da Paylaş
-                    </button>
-                    <button onclick="shareToWhatsApp()" style="padding: 0.75rem; background: #25d366; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fab fa-whatsapp"></i> WhatsApp'ta Paylaş
-                    </button>
-                    <button onclick="shareToEmail()" style="padding: 0.75rem; background: #ea4335; color: white; border: none; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-envelope"></i> Email ile Paylaş
-                    </button>
-                    <button onclick="this.closest('.modal').remove()" style="padding: 0.75rem; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
-                        <i class="fas fa-times"></i> Kapat
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(shareModal);
-}
-
-// Share functions
-function shareToTelegram() {
-    const text = encodeURIComponent('VPN Script içeriği panoya kopyalandı. Telegram\'da yapıştırabilirsin.');
-    window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${text}`, '_blank');
-}
-
-function shareToWhatsApp() {
-    const text = encodeURIComponent('VPN Script içeriği panoya kopyalandı. WhatsApp\'ta yapıştırabilirsin.');
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-}
-
-function shareToEmail() {
-    const subject = encodeURIComponent('VPN Script');
-    const body = encodeURIComponent('VPN Script içeriği panoya kopyalandı. Email\'de yapıştırabilirsin.');
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
 }
 
 // Show download alternatives modal
@@ -1219,11 +1128,9 @@ function setLanguage(lang) {
     const mobileModal = document.querySelector('.modal');
     if (mobileModal) {
         const copyBtn = mobileModal.querySelector('#copy-mobile-config');
-        const shareBtn = mobileModal.querySelector('#share-mobile-config');
         const downloadBtn = mobileModal.querySelector('#download-mobile-config');
         
         if (copyBtn) copyBtn.innerHTML = `<i class="fas fa-copy"></i> ${t.copyButton}`;
-        if (shareBtn) shareBtn.innerHTML = `<i class="fas fa-share"></i> ${t.shareButton}`;
         if (downloadBtn) downloadBtn.innerHTML = `<i class="fas fa-download"></i> ${t.downloadButton}`;
     }
 }
@@ -1240,4 +1147,36 @@ if (langSelect) {
 // Sayfa açıldığında dili uygula
 window.addEventListener('DOMContentLoaded', () => {
     setLanguage(currentLang);
-}); 
+});
+
+// Yeni fonksiyon: Bot üzerinden dosya gönder
+async function sendFileViaBot(scriptId) {
+    const userId = getUserId(); // Telegram user ID
+    try {
+        const response = await fetch('/api/send-file-to-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, scriptId })
+        });
+        if (response.ok) {
+            showNotification('Dosya Telegram üzerinden gönderildi!', 'success');
+        } else {
+            showNotification('Dosya gönderilemedi!', 'error');
+        }
+    } catch (error) {
+        showNotification('Sunucuya bağlanılamadı!', 'error');
+    }
+}
+
+// Tüm unlock-btn butonlarının click eventini sendFileViaBot fonksiyonuna yönlendiriyorum
+function setupEventListeners() {
+    // ... mevcut kod ...
+    document.querySelectorAll('.unlock-btn').forEach(btn => {
+        btn.onclick = function(e) {
+            e.preventDefault();
+            const scriptId = btn.getAttribute('data-script');
+            sendFileViaBot(scriptId);
+        };
+    });
+    // ... mevcut kod ...
+} 
