@@ -610,19 +610,7 @@ app.post('/api/admin/add-coins', adminAuth, async (req, res) => {
 app.post('/api/send-file-to-user', async (req, res) => {
     const { userId, scriptId } = req.body;
     const COIN_PRICE = 5;
-    const CHANNEL_USERNAME = '@smartvpnkeys';
-    const CHANNEL_LINK = 'https://t.me/smartvpnkeys';
     try {
-        // Kanal üyelik kontrolü
-        try {
-            const member = await bot.getChatMember(CHANNEL_USERNAME, userId);
-            if (!member || ['left', 'kicked'].includes(member.status)) {
-                return res.status(403).json({ error: 'Ilki kanala goşulmalysyň!', channel: CHANNEL_LINK });
-            }
-        } catch (err) {
-            // Kullanıcı yoksa veya başka hata
-            return res.status(403).json({ error: 'Ilki kanala goşulmalysyň!', channel: CHANNEL_LINK });
-        }
         // Kullanıcıyı bul ve coin kontrolü yap
         const user = await db.collection('users').findOne({ _id: userId });
         if (!user || typeof user.coins !== 'number' || user.coins < COIN_PRICE) {
