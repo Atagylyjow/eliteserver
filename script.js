@@ -276,23 +276,23 @@ async function watchAd() {
     try {
         console.log('🎬 Reklam izleme başlatılıyor...');
         
-        // Show the rewarded interstitial ad, but don't wait for it to finish
-        showRewardedInterstitialAd();
+        // Show the rewarded interstitial ad and wait for completion
+        await showRewardedInterstitialAd();
         
-        // Add coins after 3 seconds, regardless of ad completion
-        setTimeout(async () => {
-            console.log('💰 3 saniye geçti, coin ekleniyor...');
-            await addCoins(1);
-            
-            // Re-enable the button after coin is added
-            watchAdBtn.disabled = false;
-            watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
-        }, 3000); // 3 saniye
+        // Add coins only after ad is completely watched
+        console.log('💰 Reklam tamamlandı, coin ekleniyor...');
+        await addCoins(1);
         
-        // Close the modal immediately
+        // Re-enable the button after coin is added
+        watchAdBtn.disabled = false;
+        watchAdBtn.innerHTML = '<i class="fas fa-play"></i> Reklam İzle';
+        
+        // Close the modal after successful ad view
         if (coinModal) {
             coinModal.style.display = 'none';
         }
+        
+        showNotification('✅ Reklam izlendi! +1 coin kazandınız!', 'success');
         
     } catch (error) {
         console.error('❌ Reklam başlatma hatası:', error);
@@ -313,36 +313,18 @@ function showRewardedInterstitialAd() {
         
         // Check if Monetag SDK is loaded
         if (typeof window.show_9499819 !== 'function') {
-            console.warn('⚠️ Monetag SDK yüklenmedi, simüle ediliyor...');
-            // Simulate ad view for testing
-            setTimeout(() => {
-                console.log('✅ Simüle edilmiş reklam tamamlandı');
-                resolve();
-            }, 2000); // 2 saniye bekle
+            console.error('❌ Monetag SDK yüklenmedi!');
+            reject(new Error('Monetag SDK yüklenmedi'));
             return;
         }
         
-        // Add timeout for ad loading
-        const timeout = setTimeout(() => {
-            console.warn('⚠️ Reklam yükleme zaman aşımı, simüle ediliyor...');
-            resolve();
-        }, 10000); // 10 saniye timeout
-        
         // Show the rewarded interstitial ad
         window.show_9499819().then(() => {
-            clearTimeout(timeout);
             console.log('✅ Rewarded Interstitial reklamı başarıyla tamamlandı');
-            // You need to add your user reward function here, which will be executed after the user watches the ad.
             resolve();
         }).catch((error) => {
-            clearTimeout(timeout);
             console.error('❌ Rewarded Interstitial reklamı hatası:', error);
-            console.warn('⚠️ Reklam hatası, simüle ediliyor...');
-            // Simulate successful ad view on error
-            setTimeout(() => {
-                console.log('✅ Hata sonrası simüle edilmiş reklam tamamlandı');
-                resolve();
-            }, 2000);
+            reject(error);
         });
     });
 }
