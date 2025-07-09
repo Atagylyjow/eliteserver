@@ -276,8 +276,8 @@ async function watchAd() {
     try {
         console.log('🎬 Reklam izleme başlatılıyor...');
         
-        // Show the rewarded popup ad, but don't wait for it to finish
-        showRewardedPopupAd();
+        // Show the rewarded interstitial ad, but don't wait for it to finish
+        showRewardedInterstitialAd();
         
         // Add coins after 3 seconds, regardless of ad completion
         setTimeout(async () => {
@@ -303,13 +303,13 @@ async function watchAd() {
     }
 }
 
-// Show Monetag Rewarded Popup Ad
-function showRewardedPopupAd() {
+// Show Monetag Rewarded Interstitial Ad
+function showRewardedInterstitialAd() {
     return new Promise((resolve, reject) => {
         // Get user ID for tracking
         const ymid = getUserId();
         
-        console.log('🎬 Monetag Rewarded Popup reklamı gösteriliyor...', { ymid });
+        console.log('🎬 Monetag Rewarded Interstitial reklamı gösteriliyor...', { ymid });
         
         // Check if Monetag SDK is loaded
         if (typeof window.show_9499819 !== 'function') {
@@ -328,18 +328,15 @@ function showRewardedPopupAd() {
             resolve();
         }, 10000); // 10 saniye timeout
         
-        // Show the rewarded popup ad
-        window.show_9499819({ 
-            type: 'pop',
-            ymid: ymid,
-            requestVar: 'coin-earning'
-        }).then(() => {
+        // Show the rewarded interstitial ad
+        window.show_9499819().then(() => {
             clearTimeout(timeout);
-            console.log('✅ Rewarded Popup reklamı başarıyla tamamlandı');
+            console.log('✅ Rewarded Interstitial reklamı başarıyla tamamlandı');
+            // You need to add your user reward function here, which will be executed after the user watches the ad.
             resolve();
         }).catch((error) => {
             clearTimeout(timeout);
-            console.error('❌ Rewarded Popup reklamı hatası:', error);
+            console.error('❌ Rewarded Interstitial reklamı hatası:', error);
             console.warn('⚠️ Reklam hatası, simüle ediliyor...');
             // Simulate successful ad view on error
             setTimeout(() => {
